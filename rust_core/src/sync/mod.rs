@@ -8,6 +8,7 @@
 use serde::{Serialize, Deserialize};
 use std::sync::RwLock;
 use std::collections::VecDeque;
+use flutter_rust_bridge::frb;
 
 lazy_static::lazy_static! {
     /// In-memory queue (backed by SQLCipher in production)
@@ -15,6 +16,7 @@ lazy_static::lazy_static! {
 }
 
 /// A message queued for sending
+#[frb(ignore)]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct QueuedMessage {
     /// Unique message ID

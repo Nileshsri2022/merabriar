@@ -38,8 +38,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     // Listen for new messages from the stream
     _messageSubscription = messageService.messageStream.listen((message) {
-      print('DEBUG: New message from stream: ${message.content}');
-
       // Only add messages for this conversation
       if (message.senderId == widget.recipientId ||
           message.recipientId == widget.recipientId) {
@@ -71,11 +69,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<void> _loadMessages() async {
-    print('DEBUG: _loadMessages called for recipientId: ${widget.recipientId}');
-    print('DEBUG: currentUserId: ${messageService.currentUserId}');
     try {
       final messages = await messageService.getMessages(widget.recipientId);
-      print('DEBUG: Loaded ${messages.length} messages');
       if (!mounted) return;
       setState(() {
         _messages = messages;
@@ -109,7 +104,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       // and only if not already read
       if (!msg.isMe && msg.status != 'read') {
         await messageService.markAsRead(msg.id);
-        print('DEBUG: Marked message ${msg.id} as read');
       }
     }
   }
@@ -124,12 +118,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    print('DEBUG: _sendMessage called with text: "$text"');
-    print('DEBUG: recipientId: ${widget.recipientId}');
 
     if (text.isEmpty || _sending) {
-      print(
-          'DEBUG: Returning early - text empty: ${text.isEmpty}, sending: $_sending');
       return;
     }
 
@@ -137,13 +127,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _messageController.clear();
 
     try {
-      print('DEBUG: Calling messageService.sendMessage...');
       final message = await messageService.sendMessage(
         recipientId: widget.recipientId,
         content: text,
       );
-
-      print('DEBUG: sendMessage returned: $message');
 
       if (message != null) {
         setState(() {
@@ -160,11 +147,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             );
           }
         });
-      } else {
-        print('DEBUG: Message was null!');
-      }
+      } else {}
     } catch (e) {
-      print('DEBUG: Error sending message: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to send: $e')),
       );

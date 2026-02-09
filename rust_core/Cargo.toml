@@ -11,7 +11,7 @@ name = "merabriar_core"
 
 [dependencies]
 # FFI Bridge
-flutter_rust_bridge = "2"
+flutter_rust_bridge = "=2.11.1"
 
 # Async Runtime
 tokio = { version = "1", features = ["full"] }

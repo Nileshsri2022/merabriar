@@ -13,9 +13,12 @@ use sha2::Sha256;
 use hkdf::Hkdf;
 
 
+use flutter_rust_bridge::frb;
+
 use super::key_management::PublicKeyBundle;
 
 /// A session with a contact
+#[frb(opaque)]
 #[derive(Clone)]
 pub struct Session {
     /// Recipient's ID

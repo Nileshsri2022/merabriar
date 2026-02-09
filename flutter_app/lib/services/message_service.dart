@@ -365,8 +365,6 @@ class MessageService {
   void subscribeToMessages() {
     if (currentUserId == null) return;
 
-    print('DEBUG: Setting up realtime subscription for user: $currentUserId');
-
     // Use Supabase Realtime channels for INSERT events
     final channel = _client.channel('messages_channel_$currentUserId');
 
@@ -381,7 +379,6 @@ class MessageService {
             value: currentUserId!,
           ),
           callback: (payload) {
-            print('DEBUG: Realtime INSERT received: ${payload.newRecord}');
             final json = payload.newRecord;
 
             // Use plain text content if available
@@ -410,7 +407,6 @@ class MessageService {
           schema: 'public',
           table: 'messages',
           callback: (payload) {
-            print('DEBUG: Realtime UPDATE received: ${payload.newRecord}');
             // Notify about message updates (e.g., status changes for read receipts)
             final json = payload.newRecord;
             String content = json['content_text'] ?? '';
@@ -426,10 +422,7 @@ class MessageService {
           },
         )
         .subscribe((status, [error]) {
-      print('DEBUG: Realtime subscription status: $status');
-      if (error != null) {
-        print('DEBUG: Realtime subscription error: $error');
-      }
+      // Subscription active
     });
   }
 
@@ -440,7 +433,6 @@ class MessageService {
         'status': 'read',
         'read_at': DateTime.now().toIso8601String(),
       }).eq('id', messageId);
-      print('DEBUG: markAsRead success for $messageId');
     } catch (e) {
       print('Error marking message as read: $e');
     }
@@ -453,7 +445,6 @@ class MessageService {
         'status': 'delivered',
         'delivered_at': DateTime.now().toIso8601String(),
       }).eq('id', messageId);
-      print('DEBUG: markAsDelivered success for $messageId');
     } catch (e) {
       print('Error marking message as delivered: $e');
     }

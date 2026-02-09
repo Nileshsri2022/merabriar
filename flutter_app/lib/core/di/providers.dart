@@ -77,13 +77,11 @@ class DevMode {
   /// Set to Nilesh
   static void useNilesh() {
     _currentUserId = nileshId;
-    print('🔄 DEV MODE: Switched to Nilesh');
   }
 
   /// Set to Vaishali
   static void useVaishali() {
     _currentUserId = vaishaliId;
-    print('🔄 DEV MODE: Switched to Vaishali');
   }
 
   /// Toggle between users
