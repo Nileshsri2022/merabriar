@@ -1,0 +1,128 @@
+# ===============================
+# MeraBriar .gitignore
+# ===============================
+
+# ===============================
+# Flutter / Dart
+# ===============================
+flutter_app/.dart_tool/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+flutter_app/.packages
+flutter_app/.pub-cache/
+flutter_app/.pub/
+flutter_app/build/
+flutter_app/.metadata
+flutter_app/*.iml
+flutter_app/.idea/
+flutter_app/android/.gradle/
+flutter_app/android/app/debug/
+flutter_app/android/app/profile/
+flutter_app/android/app/release/
+flutter_app/android/local.properties
+flutter_app/android/**/GeneratedPluginRegistrant.*
+flutter_app/ios/.symlinks/
+flutter_app/ios/Pods/
+flutter_app/ios/Flutter/Flutter.framework
+flutter_app/ios/Flutter/Flutter.podspec
+flutter_app/ios/Runner.xcworkspace/
+flutter_app/ios/**/*.mode1v3
+flutter_app/ios/**/*.mode2v3
+flutter_app/ios/**/*.perspectivev3
+flutter_app/ios/**/*sync/
+flutter_app/ios/**/.sconsign.dblite
+
+# Flutter generated files
+**/generated_plugin_registrant.dart
+**/*.g.dart
+**/*.freezed.dart
+
+# ===============================
+# Rust
+# ===============================
+rust_core/target/
+rust_core/**/*.rs.bk
+rust_core/Cargo.lock
+
+# ===============================
+# Go
+# ===============================
+go_core/bin/
+go_core/*.exe
+go_core/*.dll
+go_core/*.so
+go_core/*.dylib
+go_core/*.test
+go_core/*.out
+go_core/go.sum
+
+# ===============================
+# Supabase
+# ===============================
+supabase/.branches/
+supabase/.temp/
+
+# ===============================
+# IDE / Editors
+# ===============================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===============================
+# Environment / Secrets
+# ===============================
+.env
+.env.local
+.env.*.local
+*.env
+.envrc
+
+# Supabase credentials
+supabase/.env
+supabase/config.toml
+
+# Flutter config with secrets
+flutter_app/lib/config/supabase_config.dart
+
+# ===============================
+# Build artifacts
+# ===============================
+*.apk
+*.aab
+*.ipa
+*.app
+*.dSYM.zip
+*.dSYM
+
+# Native libraries (built)
+*.a
+*.o
+*.obj
+
+# ===============================
+# Logs
+# ===============================
+*.log
+logs/
+npm-debug.log*
+
+# ===============================
+# Test / Coverage
+# ===============================
+coverage/
+*.lcov
+.coverage
+htmlcov/
+
+# ===============================
+# Misc
+# ===============================
+*.bak
+*.tmp
+*.temp
+.cache/

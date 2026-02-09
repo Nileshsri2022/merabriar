@@ -1,0 +1,56 @@
+name: merabriar
+description: A secure, encrypted messenger app inspired by Briar
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Supabase
+  supabase_flutter: ^2.3.0
+
+  # State Management
+  flutter_riverpod: ^2.4.0
+  riverpod_annotation: ^2.3.0
+
+  # FFI for Rust/Go core
+  ffi: ^2.1.0
+
+  # UI Components
+  flutter_chat_ui: ^1.6.12
+  flutter_chat_types: ^3.6.2
+  
+  # Permissions
+  permission_handler: ^11.2.0
+
+  # Utilities
+  uuid: ^4.3.0
+  intl: ^0.18.1
+  path_provider: ^2.1.2
+  shared_preferences: ^2.2.2
+  
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code generation
+  build_runner: ^2.4.8
+  riverpod_generator: ^2.3.11
+
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Assets (add your assets here)
+  # assets:
+  #   - assets/images/
