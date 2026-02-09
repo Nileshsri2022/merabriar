@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)]
 //! MeraBriar Core - Rust Implementation
 //! 
 //! This is the core engine for the MeraBriar messenger app.

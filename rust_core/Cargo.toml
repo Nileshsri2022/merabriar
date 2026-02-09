@@ -24,8 +24,8 @@ sha2 = "0.10"
 hkdf = "0.12"
 aes-gcm = "0.10"
 
-# Storage (SQLCipher)
-rusqlite = { version = "0.30", features = ["bundled-sqlcipher"] }
+# Storage (using bundled SQLite for now - switch to SQLCipher later)
+rusqlite = { version = "0.30", features = ["bundled"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }

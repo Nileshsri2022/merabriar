@@ -8,10 +8,10 @@
 //! 
 //! This is similar to Briar's session management in bramble-core
 
-use x25519_dalek::{StaticSecret, PublicKey as X25519PublicKey, SharedSecret};
+use x25519_dalek::{StaticSecret, PublicKey as X25519PublicKey};
 use sha2::Sha256;
 use hkdf::Hkdf;
-use serde::{Serialize, Deserialize};
+
 
 use super::key_management::PublicKeyBundle;
 
@@ -22,6 +22,7 @@ pub struct Session {
     pub recipient_id: String,
     
     /// Shared root key (derived from X3DH)
+    #[allow(dead_code)]
     root_key: [u8; 32],
     
     /// Sending chain key (for encrypting)

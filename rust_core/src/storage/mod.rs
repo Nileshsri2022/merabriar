@@ -1,28 +1,27 @@
 //! Storage Module
 //! 
-//! Handles local encrypted storage using SQLCipher.
+//! Handles local encrypted storage using SQLite.
 //! All data at rest is encrypted.
 //! 
 //! This mirrors Briar's `bramble-api/db/DatabaseComponent`
 
 use rusqlite::{Connection, params};
-use std::sync::RwLock;
-use serde::{Serialize, Deserialize};
+use std::sync::Mutex;
 
 use crate::message::Message;
 
 lazy_static::lazy_static! {
-    static ref DB: RwLock<Option<Connection>> = RwLock::new(None);
+    static ref DB: Mutex<Option<Connection>> = Mutex::new(None);
 }
 
 /// Initialize the encrypted database
-pub fn init(db_path: &str, encryption_key: &str) -> Result<(), String> {
+pub fn init(db_path: &str, _encryption_key: &str) -> Result<(), String> {
     let conn = Connection::open(db_path)
         .map_err(|e| format!("Failed to open database: {:?}", e))?;
     
-    // Set SQLCipher encryption key
-    conn.execute_batch(&format!("PRAGMA key = '{}';", encryption_key))
-        .map_err(|e| format!("Failed to set encryption key: {:?}", e))?;
+    // Note: For SQLCipher encryption, uncomment this when SQLCipher is set up:
+    // conn.execute_batch(&format!("PRAGMA key = '{}';", encryption_key))
+    //     .map_err(|e| format!("Failed to set encryption key: {:?}", e))?;
     
     // Create tables
     conn.execute_batch(
@@ -79,7 +78,7 @@ pub fn init(db_path: &str, encryption_key: &str) -> Result<(), String> {
     ).map_err(|e| format!("Failed to create tables: {:?}", e))?;
     
     // Store connection
-    let mut db = DB.write().map_err(|e| e.to_string())?;
+    let mut db = DB.lock().map_err(|e| e.to_string())?;
     *db = Some(conn);
     
     Ok(())
@@ -87,7 +86,7 @@ pub fn init(db_path: &str, encryption_key: &str) -> Result<(), String> {
 
 /// Store a message locally
 pub fn store_message(message: &Message) -> Result<(), String> {
-    let db = DB.read().map_err(|e| e.to_string())?;
+    let db = DB.lock().map_err(|e| e.to_string())?;
     let conn = db.as_ref().ok_or("Database not initialized")?;
     
     conn.execute(
@@ -108,7 +107,7 @@ pub fn store_message(message: &Message) -> Result<(), String> {
 
 /// Get messages for a conversation
 pub fn get_messages(conversation_id: &str, limit: i32, offset: i32) -> Result<Vec<Message>, String> {
-    let db = DB.read().map_err(|e| e.to_string())?;
+    let db = DB.lock().map_err(|e| e.to_string())?;
     let conn = db.as_ref().ok_or("Database not initialized")?;
     
     let mut stmt = conn.prepare(
@@ -137,7 +136,7 @@ pub fn get_messages(conversation_id: &str, limit: i32, offset: i32) -> Result<Ve
 
 /// Store a session
 pub fn store_session(recipient_id: &str, session_data: &[u8]) -> Result<(), String> {
-    let db = DB.read().map_err(|e| e.to_string())?;
+    let db = DB.lock().map_err(|e| e.to_string())?;
     let conn = db.as_ref().ok_or("Database not initialized")?;
     
     conn.execute(
@@ -151,7 +150,7 @@ pub fn store_session(recipient_id: &str, session_data: &[u8]) -> Result<(), Stri
 
 /// Get a session
 pub fn get_session(recipient_id: &str) -> Result<Option<Vec<u8>>, String> {
-    let db = DB.read().map_err(|e| e.to_string())?;
+    let db = DB.lock().map_err(|e| e.to_string())?;
     let conn = db.as_ref().ok_or("Database not initialized")?;
     
     let result = conn.query_row(

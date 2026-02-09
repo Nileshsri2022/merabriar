@@ -95,7 +95,7 @@ impl Transport for CloudTransport {
         self.state.clone()
     }
     
-    async fn send(&self, recipient_id: &str, data: &[u8]) -> Result<(), String> {
+    async fn send(&self, _recipient_id: &str, _data: &[u8]) -> Result<(), String> {
         // In production: Send via Supabase Realtime or insert to messages table
         // This is handled by Flutter/Dart side
         Ok(())
@@ -135,7 +135,7 @@ impl Transport for LanTransport {
         self.state.clone()
     }
     
-    async fn send(&self, recipient_id: &str, data: &[u8]) -> Result<(), String> {
+    async fn send(&self, _recipient_id: &str, _data: &[u8]) -> Result<(), String> {
         // Phase 2: Implement mDNS discovery + TCP connection
         Err("LAN transport not yet implemented".to_string())
     }
@@ -175,7 +175,7 @@ impl Transport for BluetoothTransport {
         self.state.clone()
     }
     
-    async fn send(&self, recipient_id: &str, data: &[u8]) -> Result<(), String> {
+    async fn send(&self, _recipient_id: &str, _data: &[u8]) -> Result<(), String> {
         // Phase 2: Implement BLE connection
         Err("Bluetooth transport not yet implemented".to_string())
     }
@@ -215,7 +215,7 @@ impl Transport for TorTransport {
         self.state.clone()
     }
     
-    async fn send(&self, recipient_id: &str, data: &[u8]) -> Result<(), String> {
+    async fn send(&self, _recipient_id: &str, _data: &[u8]) -> Result<(), String> {
         // Phase 3: Implement Tor hidden service connection
         Err("Tor transport not yet implemented".to_string())
     }

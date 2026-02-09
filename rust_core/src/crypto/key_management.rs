@@ -99,6 +99,7 @@ pub fn get_public_key_bundle() -> Result<PublicKeyBundle, String> {
 }
 
 /// Generate a batch of one-time prekeys
+#[allow(dead_code)]
 pub fn generate_prekeys(count: usize) -> Vec<(u32, Vec<u8>, [u8; 32])> {
     let mut prekeys = Vec::with_capacity(count);
     

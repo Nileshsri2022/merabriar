@@ -134,3 +134,81 @@ class RustMessengerCore implements MessengerCore {
     print('[RustCore] Clearing queue: $messageIds');
   }
 }
+
+/// Web implementation of MessengerCore (stub for browser)
+/// No FFI on web, so this uses pure Dart implementations
+class WebMessengerCore implements MessengerCore {
+  bool _initialized = false;
+
+  @override
+  Future<void> init(String dbPath, String encryptionKey) async {
+    _initialized = true;
+    print('[WebCore] Initialized (stub mode)');
+  }
+
+  @override
+  Future<KeyBundle> generateIdentityKeys() async {
+    if (!_initialized) throw Exception('Core not initialized');
+    print('[WebCore] Generating identity keys (stub)...');
+    return KeyBundle(
+      identityPublicKey: Uint8List(32),
+      signedPreKey: Uint8List(32),
+      signature: Uint8List(64),
+    );
+  }
+
+  @override
+  Future<PublicKeyBundle> getPublicKeyBundle() async {
+    if (!_initialized) throw Exception('Core not initialized');
+    return PublicKeyBundle(
+      identityPublicKey: Uint8List(32),
+      signedPreKey: Uint8List(32),
+      signature: Uint8List(64),
+    );
+  }
+
+  @override
+  Future<void> initSession(
+      String recipientId, PublicKeyBundle recipientKeys) async {
+    if (!_initialized) throw Exception('Core not initialized');
+    print('[WebCore] Session initialized with: $recipientId');
+  }
+
+  @override
+  Future<bool> hasSession(String recipientId) async {
+    if (!_initialized) throw Exception('Core not initialized');
+    return false;
+  }
+
+  @override
+  Future<Uint8List> encryptMessage(String recipientId, String plaintext) async {
+    if (!_initialized) throw Exception('Core not initialized');
+    // Web stub: just encode as bytes (no real encryption)
+    return Uint8List.fromList(plaintext.codeUnits);
+  }
+
+  @override
+  Future<String> decryptMessage(String senderId, Uint8List ciphertext) async {
+    if (!_initialized) throw Exception('Core not initialized');
+    // Web stub: just decode bytes
+    return String.fromCharCodes(ciphertext);
+  }
+
+  @override
+  Future<void> queueMessage(QueuedMessage message) async {
+    if (!_initialized) throw Exception('Core not initialized');
+    print('[WebCore] Queuing message: ${message.id}');
+  }
+
+  @override
+  Future<List<QueuedMessage>> getQueuedMessages() async {
+    if (!_initialized) throw Exception('Core not initialized');
+    return [];
+  }
+
+  @override
+  Future<void> clearQueue(List<String> messageIds) async {
+    if (!_initialized) throw Exception('Core not initialized');
+    print('[WebCore] Clearing queue: $messageIds');
+  }
+}
