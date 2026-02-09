@@ -5,5 +5,8 @@ rust_input: "crate::api"
 rust_root: "../rust_core/"
 dart_output: "lib/src/rust/"
 
+# C header output (needed for ffigen)
+c_output: "../rust_core/target/merabriar_core.h"
+
 # Full dependency mode
 full_dep: true

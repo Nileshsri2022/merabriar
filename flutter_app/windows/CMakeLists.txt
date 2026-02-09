@@ -87,6 +87,14 @@ if(PLUGIN_BUNDLED_LIBRARIES)
     COMPONENT Runtime)
 endif()
 
+# Install Rust merabriar_core library
+set(RUST_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../rust_core/target/release")
+if(EXISTS "${RUST_LIB_DIR}/merabriar_core.dll")
+  install(FILES "${RUST_LIB_DIR}/merabriar_core.dll"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+endif()
+
 # Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/windows/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"

@@ -209,6 +209,181 @@ class RustLibWire implements BaseWire {
   late final _store_dart_post_cobject = _store_dart_post_cobjectPtr
       .asFunction<void Function(DartPostCObjectFnType)>();
 
+  void wire__crate__api__decrypt_message(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> sender_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_loose> ciphertext,
+  ) {
+    return _wire__crate__api__decrypt_message(port_, sender_id, ciphertext);
+  }
+
+  late final _wire__crate__api__decrypt_messagePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+          )>>('frbgen_merabriar_wire__crate__api__decrypt_message');
+  late final _wire__crate__api__decrypt_message =
+      _wire__crate__api__decrypt_messagePtr.asFunction<
+          void Function(
+            int,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+          )>();
+
+  void wire__crate__api__encrypt_message(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> recipient_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> plaintext,
+  ) {
+    return _wire__crate__api__encrypt_message(port_, recipient_id, plaintext);
+  }
+
+  late final _wire__crate__api__encrypt_messagePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )>>('frbgen_merabriar_wire__crate__api__encrypt_message');
+  late final _wire__crate__api__encrypt_message =
+      _wire__crate__api__encrypt_messagePtr.asFunction<
+          void Function(
+            int,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )>();
+
+  void wire__crate__api__generate_identity_keys(int port_) {
+    return _wire__crate__api__generate_identity_keys(port_);
+  }
+
+  late final _wire__crate__api__generate_identity_keysPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+    'frbgen_merabriar_wire__crate__api__generate_identity_keys',
+  );
+  late final _wire__crate__api__generate_identity_keys =
+      _wire__crate__api__generate_identity_keysPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__get_public_key_bundle(int port_) {
+    return _wire__crate__api__get_public_key_bundle(port_);
+  }
+
+  late final _wire__crate__api__get_public_key_bundlePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+    'frbgen_merabriar_wire__crate__api__get_public_key_bundle',
+  );
+  late final _wire__crate__api__get_public_key_bundle =
+      _wire__crate__api__get_public_key_bundlePtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__has_session(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> recipient_id,
+  ) {
+    return _wire__crate__api__has_session(port_, recipient_id);
+  }
+
+  late final _wire__crate__api__has_sessionPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )>>('frbgen_merabriar_wire__crate__api__has_session');
+  late final _wire__crate__api__has_session =
+      _wire__crate__api__has_sessionPtr.asFunction<
+          void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
+  void wire__crate__api__init_core(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> db_path,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> encryption_key,
+  ) {
+    return _wire__crate__api__init_core(port_, db_path, encryption_key);
+  }
+
+  late final _wire__crate__api__init_corePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )>>('frbgen_merabriar_wire__crate__api__init_core');
+  late final _wire__crate__api__init_core =
+      _wire__crate__api__init_corePtr.asFunction<
+          void Function(
+            int,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )>();
+
+  void wire__crate__api__init_session(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> recipient_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_loose> identity_public_key,
+    ffi.Pointer<wire_cst_list_prim_u_8_loose> signed_prekey,
+    ffi.Pointer<wire_cst_list_prim_u_8_loose> signature,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> one_time_prekey,
+  ) {
+    return _wire__crate__api__init_session(
+      port_,
+      recipient_id,
+      identity_public_key,
+      signed_prekey,
+      signature,
+      one_time_prekey,
+    );
+  }
+
+  late final _wire__crate__api__init_sessionPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )>>('frbgen_merabriar_wire__crate__api__init_session');
+  late final _wire__crate__api__init_session =
+      _wire__crate__api__init_sessionPtr.asFunction<
+          void Function(
+            int,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )>();
+
+  ffi.Pointer<wire_cst_list_prim_u_8_loose> cst_new_list_prim_u_8_loose(
+    int len,
+  ) {
+    return _cst_new_list_prim_u_8_loose(len);
+  }
+
+  late final _cst_new_list_prim_u_8_loosePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_prim_u_8_loose> Function(
+              ffi.Int32)>>('frbgen_merabriar_cst_new_list_prim_u_8_loose');
+  late final _cst_new_list_prim_u_8_loose = _cst_new_list_prim_u_8_loosePtr
+      .asFunction<ffi.Pointer<wire_cst_list_prim_u_8_loose> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_new_list_prim_u_8_strict(
+    int len,
+  ) {
+    return _cst_new_list_prim_u_8_strict(len);
+  }
+
+  late final _cst_new_list_prim_u_8_strictPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_prim_u_8_strict> Function(
+              ffi.Int32)>>('frbgen_merabriar_cst_new_list_prim_u_8_strict');
+  late final _cst_new_list_prim_u_8_strict = _cst_new_list_prim_u_8_strictPtr
+      .asFunction<ffi.Pointer<wire_cst_list_prim_u_8_strict> Function(int)>();
+
   int dummy_method_to_enforce_bundling() {
     return _dummy_method_to_enforce_bundling();
   }
@@ -229,3 +404,35 @@ typedef DartDartPostCObjectFnTypeFunction = bool Function(
     DartDartPort port_id, ffi.Pointer<ffi.Void> message);
 typedef DartPostCObjectFnType
     = ffi.Pointer<ffi.NativeFunction<DartPostCObjectFnTypeFunction>>;
+
+final class wire_cst_list_prim_u_8_strict extends ffi.Struct {
+  external ffi.Pointer<ffi.Uint8> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_list_prim_u_8_loose extends ffi.Struct {
+  external ffi.Pointer<ffi.Uint8> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_key_bundle_dto extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> identity_public_key;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> signed_prekey;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> signature;
+}
+
+final class wire_cst_public_key_bundle_dto extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> identity_public_key;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> signed_prekey;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> signature;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> one_time_prekey;
+}
