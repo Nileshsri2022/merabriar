@@ -6,7 +6,7 @@ description = "Core engine for MeraBriar messenger"
 authors = ["MeraBriar Team"]
 
 [lib]
-crate-type = ["cdylib", "staticlib"]
+crate-type = ["cdylib", "staticlib", "lib"]
 name = "merabriar_core"
 
 [dependencies]
