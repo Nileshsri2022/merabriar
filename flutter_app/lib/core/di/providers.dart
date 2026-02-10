@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../bridge/core_interface.dart';
 import '../bridge/rust_bridge.dart';
+import '../bridge/go_bridge.dart';
 
 /// Core type enum - controls which core is used
 enum CoreType { rust, go, web }
@@ -11,8 +12,7 @@ enum CoreType { rust, go, web }
 /// CHANGE THIS TO SWITCH BETWEEN RUST AND GO CORES!
 /// (Web will automatically use stub implementation)
 /// ============================================================
-const CoreType activeCore = CoreType.rust;
-// const CoreType activeCore = CoreType.go;
+const CoreType activeCore = CoreType.go;
 
 /// Provider for the messenger core
 /// This is the single source of truth for core access
@@ -26,8 +26,7 @@ final messengerCoreProvider = Provider<MessengerCore>((ref) {
     case CoreType.rust:
       return RustMessengerCore();
     case CoreType.go:
-      // Go bridge also uses FFI, fallback to Rust or stub
-      return RustMessengerCore();
+      return GoMessengerCore();
     case CoreType.web:
       return WebMessengerCore();
   }
