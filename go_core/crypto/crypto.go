@@ -17,11 +17,11 @@ import (
 
 // KeyBundle contains all identity keys (private + public)
 type KeyBundle struct {
-	IdentityPublicKey  []byte `json:"identity_public_key"`
-	IdentityPrivateKey []byte `json:"-"` // Never export
-	SignedPreKey       []byte `json:"signed_prekey"`
+	IdentityPublicKey   []byte `json:"identity_public_key"`
+	IdentityPrivateKey  []byte `json:"-"` // Never export
+	SignedPreKey        []byte `json:"signed_prekey"`
 	SignedPreKeyPrivate []byte `json:"-"` // Never export
-	Signature          []byte `json:"signature"`
+	Signature           []byte `json:"signature"`
 }
 
 // PublicKeyBundle contains only public keys (safe to share)
@@ -98,12 +98,24 @@ func (km *KeyManager) GetSignedPreKeyPrivate() ([]byte, error) {
 
 // Session represents an encrypted session with a contact
 type Session struct {
-	RecipientID   string
-	rootKey       [32]byte
-	sendChainKey  [32]byte
-	recvChainKey  [32]byte
-	sendCounter   uint32
-	recvCounter   uint32
+	RecipientID  string
+	rootKey      [32]byte
+	sendChainKey [32]byte
+	recvChainKey [32]byte
+	sendCounter  uint32
+	recvCounter  uint32
+}
+
+// NewSessionDirect creates a session with explicit chain keys (for testing/benchmarking)
+func NewSessionDirect(recipientID string, rootKey, sendChain, recvChain [32]byte) *Session {
+	return &Session{
+		RecipientID:  recipientID,
+		rootKey:      rootKey,
+		sendChainKey: sendChain,
+		recvChainKey: recvChain,
+		sendCounter:  0,
+		recvCounter:  0,
+	}
 }
 
 // NewSession creates a new session with a recipient
@@ -225,7 +237,7 @@ func (s *Session) deriveRecvKey() [32]byte {
 func (s *Session) deriveMessageKey(chainKey [32]byte, counter uint32) ([32]byte, [32]byte) {
 	// Use counter as salt
 	salt := []byte{byte(counter >> 24), byte(counter >> 16), byte(counter >> 8), byte(counter)}
-	
+
 	hkdfReader := hkdf.New(sha256.New, chainKey[:], salt, []byte("merabriar_message"))
 
 	var messageKey, newChainKey [32]byte

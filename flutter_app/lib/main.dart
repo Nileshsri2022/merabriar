@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'config/app_theme.dart';
 import 'config/supabase_config.dart';
 import 'features/auth/screens/splash_screen.dart';
 
@@ -56,7 +57,6 @@ class _MeraBriarAppState extends State<MeraBriarApp> {
   void _handleDeepLink(Uri uri) {
     print('Deep link received: $uri');
     // Supabase handles the auth callback automatically
-    // The auth state change listener in login_screen.dart will handle the redirect
   }
 
   @override
@@ -64,23 +64,12 @@ class _MeraBriarAppState extends State<MeraBriarApp> {
     return MaterialApp(
       title: 'MeraBriar',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
-          brightness: Brightness.light,
-        ),
-        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
-          brightness: Brightness.dark,
-        ),
-        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
-      ),
+
+      // ── Premium Theme ──
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
+
       home: const SplashScreen(),
     );
   }
