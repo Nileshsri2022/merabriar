@@ -8,6 +8,7 @@ import '../../../core/widgets/chat_shimmer.dart';
 import '../../../core/widgets/connectivity_banner.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../services/message_service.dart';
+import '../providers/chat_providers.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String recipientId;
@@ -28,63 +29,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
 
-  List<Message> _messages = [];
-  bool _loading = true;
-  bool _sending = false;
-  String? _loadError;
-
   late StreamSubscription<Message> _messageSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    ref.read(messagesProvider(widget.recipientId).notifier).loadMessages();
 
     messageService.subscribeToMessages();
 
     _messageSubscription = messageService.messageStream.listen((message) {
       if (message.senderId == widget.recipientId ||
           message.recipientId == widget.recipientId) {
-        final exists = _messages.any((m) => m.id == message.id);
-        if (!exists) {
-          setState(() => _messages.add(message));
-          _scrollToBottom();
+        ref
+            .read(messagesProvider(widget.recipientId).notifier)
+            .addIncomingMessage(message);
+        _scrollToBottom();
 
-          if (!message.isMe && message.status != 'read') {
-            messageService.markAsRead(message.id);
-          }
+        if (!message.isMe && message.status != 'read') {
+          messageService.markAsRead(message.id);
         }
       }
     });
-  }
-
-  Future<void> _loadMessages() async {
-    try {
-      final messages = await messageService.getMessages(widget.recipientId);
-      if (!mounted) return;
-      setState(() {
-        _messages = messages;
-        _loading = false;
-        _loadError = null;
-      });
-
-      _markReceivedMessagesAsRead(messages);
-      _scrollToBottom();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _loadError = e.toString();
-      });
-    }
-  }
-
-  Future<void> _markReceivedMessagesAsRead(List<Message> messages) async {
-    for (final msg in messages) {
-      if (!msg.isMe && msg.status != 'read') {
-        await messageService.markAsRead(msg.id);
-      }
-    }
   }
 
   void _scrollToBottom() {
@@ -109,31 +75,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _sending) return;
+    final msgState = ref.read(messagesProvider(widget.recipientId));
+    if (text.isEmpty || msgState.sending) return;
 
-    setState(() => _sending = true);
     _messageController.clear();
 
     try {
-      final message = await messageService.sendMessage(
-        recipientId: widget.recipientId,
-        content: text,
-      );
-
-      if (message != null) {
-        setState(() => _messages.add(message));
-        _scrollToBottom();
-      }
+      await ref
+          .read(messagesProvider(widget.recipientId).notifier)
+          .sendMessage(text);
+      _scrollToBottom();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to send: $e'),
-          backgroundColor: AppTheme.danger,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } finally {
-      setState(() => _sending = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send: $e'),
+            backgroundColor: AppTheme.danger,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -141,6 +102,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final msgState = ref.watch(messagesProvider(widget.recipientId));
 
     return Scaffold(
       appBar: AppBar(
@@ -252,20 +214,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
             // ── Messages ──
             Expanded(
-              child: _loading
+              child: msgState.loading
                   ? const ChatShimmerLoader()
-                  : _loadError != null
+                  : msgState.error != null
                       ? ErrorStateWidget.loadFailed(
                           what: 'messages',
-                          onRetry: _loadMessages,
+                          onRetry: () => ref
+                              .read(
+                                  messagesProvider(widget.recipientId).notifier)
+                              .loadMessages(),
                         )
-                      : _messages.isEmpty
+                      : msgState.messages.isEmpty
                           ? _buildEmptyChat(theme)
-                          : _buildMessageList(theme, isDark),
+                          : _buildMessageList(theme, isDark, msgState.messages),
             ),
 
             // ── Input Bar ──
-            _buildInputBar(theme, isDark),
+            _buildInputBar(theme, isDark, msgState),
           ],
         ),
       ),
@@ -335,20 +300,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   // ── Message List ──
-  Widget _buildMessageList(ThemeData theme, bool isDark) {
+  Widget _buildMessageList(
+      ThemeData theme, bool isDark, List<Message> messages) {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      itemCount: _messages.length + 1, // +1 for date header
+      itemCount: messages.length + 1, // +1 for date header
       itemBuilder: (context, index) {
         if (index == 0) {
           return _buildEncryptionBanner(theme);
         }
-        final msg = _messages[index - 1];
+        final msg = messages[index - 1];
         final showDate = index == 1 ||
             _shouldShowDate(
-              _messages[index - 1].sentAt,
-              index > 1 ? _messages[index - 2].sentAt : null,
+              messages[index - 1].sentAt,
+              index > 1 ? messages[index - 2].sentAt : null,
             );
 
         return Column(
@@ -426,7 +392,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   // ── Input Bar ──
-  Widget _buildInputBar(ThemeData theme, bool isDark) {
+  Widget _buildInputBar(ThemeData theme, bool isDark, MessagesState msgState) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
@@ -505,10 +471,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: _sending ? null : _sendMessage,
+                  onTap: msgState.sending ? null : _sendMessage,
                   borderRadius: BorderRadius.circular(21),
                   child: Center(
-                    child: _sending
+                    child: msgState.sending
                         ? const SizedBox(
                             width: 18,
                             height: 18,

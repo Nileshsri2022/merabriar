@@ -181,3 +181,12 @@ final allUsersProvider = FutureProvider<List<UserProfile>>((ref) async {
 final currentUserProvider = FutureProvider<UserProfile?>((ref) async {
   return await userService.getCurrentProfile();
 });
+
+// ══════════════════════════════════════════════════════════════
+// Individual User Profile — keyed by userId
+// ══════════════════════════════════════════════════════════════
+
+final userProfileProvider =
+    FutureProvider.family<UserProfile?, String>((ref, userId) async {
+  return await userService.getUser(userId);
+});

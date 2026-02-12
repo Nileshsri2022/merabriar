@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../config/app_theme.dart';
 import '../../../core/di/providers.dart';
 import '../../../services/user_service.dart';
+import '../../chat/providers/chat_providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -15,32 +16,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  UserProfile? _profile;
-  bool _loading = true;
   final _nameController = TextEditingController();
   bool _editingName = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfile();
-  }
+  bool _nameControllerInitialized = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadProfile() async {
-    final profile = await userService.getCurrentProfile();
-    if (mounted) {
-      setState(() {
-        _profile = profile;
-        _nameController.text = profile?.displayName ?? '';
-        _loading = false;
-      });
-    }
   }
 
   Future<void> _updateDisplayName() async {
@@ -49,7 +32,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     setState(() => _editingName = false);
     await userService.createOrUpdateProfile(displayName: newName);
-    await _loadProfile();
+    ref.invalidate(currentUserProvider);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,6 +84,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final profileAsync = ref.watch(currentUserProvider);
+    final profile = profileAsync.valueOrNull;
+    final loading = profileAsync.isLoading;
+
+    // Initialize name controller when profile first loads
+    if (profile != null && !_nameControllerInitialized) {
+      _nameController.text = profile.displayName ?? '';
+      _nameControllerInitialized = true;
+    }
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -132,8 +125,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                           child: Center(
                             child: Text(
-                              _profile?.displayName?.isNotEmpty == true
-                                  ? _profile!.displayName![0].toUpperCase()
+                              profile?.displayName?.isNotEmpty == true
+                                  ? profile!.displayName![0].toUpperCase()
                                   : '?',
                               style: const TextStyle(
                                 fontSize: 32,
@@ -146,7 +139,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        _profile?.displayName ?? 'Loading...',
+                        profile?.displayName ?? 'Loading...',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -164,7 +157,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // ── Body ──
           SliverToBoxAdapter(
-            child: _loading
+            child: loading
                 ? const Center(
                     child: Padding(
                       padding: EdgeInsets.all(40),
@@ -184,7 +177,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             _SettingsTile(
                               icon: Icons.badge_outlined,
                               title: 'Display Name',
-                              subtitle: _profile?.displayName ?? 'Not set',
+                              subtitle: profile?.displayName ?? 'Not set',
                               trailing: IconButton(
                                 icon: Icon(
                                   _editingName ? Icons.check : Icons.edit,

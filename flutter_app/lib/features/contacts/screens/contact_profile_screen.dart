@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../config/app_theme.dart';
 import '../../../services/user_service.dart';
+import '../../chat/providers/chat_providers.dart';
 
 /// Contact profile screen — shows user details and actions
 class ContactProfileScreen extends ConsumerStatefulWidget {
@@ -22,25 +23,11 @@ class ContactProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
-  UserProfile? _user;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUser();
-  }
-
-  Future<void> _loadUser() async {
-    final user = await userService.getUser(widget.userId);
-    if (mounted) {
-      setState(() {
-        _user = user;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final userAsync = ref.watch(userProfileProvider(widget.userId));
+    final user = userAsync.valueOrNull;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -100,7 +87,7 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
                               ),
                             ),
                           ),
-                          if (_user?.isOnline == true)
+                          if (user?.isOnline == true)
                             Positioned(
                               right: 4,
                               bottom: 4,
@@ -131,10 +118,10 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _user?.isOnline == true
+                        user?.isOnline == true
                             ? 'Online'
-                            : _user?.lastSeen != null
-                                ? 'Last seen ${_formatLastSeen(_user!.lastSeen!)}'
+                            : user?.lastSeen != null
+                                ? 'Last seen ${_formatLastSeen(user!.lastSeen!)}'
                                 : 'Offline',
                         style: TextStyle(
                           fontSize: 14,
@@ -209,14 +196,14 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
                       _InfoTile(
                         icon: Icons.access_time,
                         title: 'Status',
-                        subtitle: _user?.isOnline == true
+                        subtitle: user?.isOnline == true
                             ? 'Currently online'
                             : 'Offline',
                         trailing: Container(
                           width: 10,
                           height: 10,
                           decoration: BoxDecoration(
-                            color: _user?.isOnline == true
+                            color: user?.isOnline == true
                                 ? AppTheme.success
                                 : Colors.grey,
                             shape: BoxShape.circle,
