@@ -319,14 +319,20 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${widget.displayName} blocked'),
-                  backgroundColor: AppTheme.danger,
-                ),
-              );
+              final success = await userService.blockContact(widget.userId);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success
+                        ? '${widget.displayName} blocked'
+                        : 'Failed to block contact'),
+                    backgroundColor:
+                        success ? AppTheme.danger : AppTheme.warning,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.danger,

@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../core/bridge/core_interface.dart' show QueuedMessage;
 import '../core/di/providers.dart' show DevMode;
+import 'encryption_service.dart';
 
 /// Message model
 class Message {
@@ -59,7 +63,6 @@ class Message {
     };
   }
 
-  // Use DevMode for proper message alignment
   bool get isMe =>
       senderId ==
       (Supabase.instance.client.auth.currentUser?.id ?? DevMode.currentUserId);
@@ -84,20 +87,30 @@ class Conversation {
   });
 }
 
-/// Message Service - handles all messaging operations
+/// Message Service — wired to EncryptionService for real E2E encryption.
 class MessageService {
   final SupabaseClient _client = Supabase.instance.client;
+
+  /// The encryption service — injected after core init.
+  EncryptionService? _encryption;
 
   StreamSubscription? _messageSubscription;
   final _messageController = StreamController<Message>.broadcast();
 
   Stream<Message> get messageStream => _messageController.stream;
 
-  // DEV MODE: Use DevMode for dynamic user switching
   String? get currentUserId =>
       _client.auth.currentUser?.id ?? DevMode.currentUserId;
 
-  /// Send a message
+  /// Attach the encryption service (called after core init).
+  void setEncryptionService(EncryptionService service) {
+    _encryption = service;
+    print('[MessageService] Encryption service attached');
+  }
+
+  // ─── Send ───
+
+  /// Send a message — encrypts if a session is available, else plaintext.
   Future<Message?> sendMessage({
     required String recipientId,
     required String content,
@@ -105,19 +118,28 @@ class MessageService {
     if (currentUserId == null) return null;
 
     try {
-      // TODO: Encrypt message using Rust core
-      // final encryptedContent = await rustCore.encryptMessage(recipientId, content);
+      Uint8List? ciphertext;
+      String? plainFallback;
 
-      // For now, store as plain text (encryption placeholder)
-      final contentBytes = content.codeUnits;
+      // Try to encrypt with the core
+      if (_encryption != null) {
+        ciphertext = await _encryption!.encrypt(recipientId, content);
+      }
+
+      // If encryption produced ciphertext, don't store plaintext
+      if (ciphertext != null) {
+        plainFallback = null; // E2E encrypted — no plaintext on server
+      } else {
+        plainFallback = content; // Fallback: store as readable text
+      }
 
       final response = await _client
           .from('messages')
           .insert({
             'sender_id': currentUserId,
             'recipient_id': recipientId,
-            'content_text': content, // Plain text for now
-            'encrypted_content': contentBytes, // Keep for future encryption
+            'content_text': plainFallback, // null when encrypted
+            'encrypted_content': ciphertext?.toList() ?? content.codeUnits,
             'message_type': 'text',
             'status': 'sent',
           })
@@ -129,17 +151,38 @@ class MessageService {
         senderId: currentUserId!,
         recipientId: recipientId,
         content: content,
-        encryptedContent: contentBytes,
+        encryptedContent: ciphertext?.toList() ?? content.codeUnits,
         status: 'sent',
         sentAt: DateTime.now(),
       );
     } catch (e) {
-      print('Error sending message: $e');
+      print('[MessageService] Send failed: $e');
+
+      // Queue for retry if offline
+      if (_encryption != null) {
+        try {
+          final encrypted = await _encryption!.encrypt(recipientId, content);
+          if (encrypted != null) {
+            await _encryption!.queueForRetry(
+              QueuedMessage(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                recipientId: recipientId,
+                encryptedContent: encrypted,
+                createdAt: DateTime.now().millisecondsSinceEpoch,
+              ),
+            );
+            print('[MessageService] Message queued for retry');
+          }
+        } catch (_) {}
+      }
+
       return null;
     }
   }
 
-  /// Get messages for a conversation
+  // ─── Receive / Fetch ───
+
+  /// Get messages for a conversation — decrypts if encrypted.
   Future<List<Message>> getMessages(String oderId, {int limit = 50}) async {
     if (currentUserId == null) return [];
 
@@ -147,95 +190,82 @@ class MessageService {
       final response = await _client
           .from('messages')
           .select()
-          .or('and(sender_id.eq.$currentUserId,recipient_id.eq.$oderId),and(sender_id.eq.$oderId,recipient_id.eq.$currentUserId)')
+          .or('and(sender_id.eq.$currentUserId,recipient_id.eq.$oderId),'
+              'and(sender_id.eq.$oderId,recipient_id.eq.$currentUserId)')
           .order('sent_at', ascending: false)
           .limit(limit);
 
-      return (response as List)
-          .map((json) {
-            // Use plain text content if available
-            String content = json['content_text'] ?? '';
-            List<int>? contentBytes;
+      final messages = <Message>[];
 
-            // Fall back to encrypted_content if no plain text
-            if (content.isEmpty) {
-              final encryptedContent = json['encrypted_content'];
-              // Handle different formats from Supabase
-              if (encryptedContent is String) {
-                String strContent = encryptedContent;
+      for (final json in (response as List)) {
+        final msg = await _parseMessage(json);
+        messages.add(msg);
+      }
 
-                // Try base64 first (new format)
-                try {
-                  contentBytes = base64Decode(strContent);
-                  content = String.fromCharCodes(contentBytes);
-                } catch (e) {
-                  // Not base64, try other formats
-
-                  // Check if it's a JSON array like "[104,101,108,108,111]"
-                  if (strContent.startsWith('[') && strContent.endsWith(']')) {
-                    try {
-                      final List<dynamic> decoded = jsonDecode(strContent);
-                      contentBytes = decoded.cast<int>().toList();
-                      content = String.fromCharCodes(contentBytes);
-                    } catch (e) {
-                      content = strContent;
-                    }
-                  } else if (strContent.startsWith('\\x')) {
-                    // It's a hex string
-                    String hexStr = strContent.substring(2);
-                    try {
-                      contentBytes = [];
-                      for (int i = 0; i < hexStr.length; i += 2) {
-                        contentBytes.add(
-                            int.parse(hexStr.substring(i, i + 2), radix: 16));
-                      }
-                      content = String.fromCharCodes(contentBytes);
-                    } catch (e) {
-                      content = hexStr;
-                    }
-                  } else {
-                    // Plain text
-                    content = strContent;
-                  }
-                }
-              } else if (encryptedContent is List) {
-                contentBytes = List<int>.from(encryptedContent);
-                content = String.fromCharCodes(contentBytes);
-              }
-            }
-
-            return Message(
-              id: json['id'],
-              senderId: json['sender_id'],
-              recipientId: json['recipient_id'],
-              content: content,
-              encryptedContent: contentBytes,
-              messageType: json['message_type'] ?? 'text',
-              status: json['status'] ?? 'sent',
-              sentAt: DateTime.parse(json['sent_at']),
-              deliveredAt: json['delivered_at'] != null
-                  ? DateTime.parse(json['delivered_at'])
-                  : null,
-              readAt: json['read_at'] != null
-                  ? DateTime.parse(json['read_at'])
-                  : null,
-            );
-          })
-          .toList()
-          .reversed
-          .toList(); // Reverse to show oldest first
+      return messages.reversed.toList();
     } catch (e) {
-      print('Error getting messages: $e');
+      print('[MessageService] Get messages error: $e');
       return [];
     }
   }
 
-  /// Get all conversations (users we've chatted with)
+  /// Parse a single message row — handles decryption.
+  Future<Message> _parseMessage(Map<String, dynamic> json) async {
+    String content = json['content_text'] ?? '';
+    List<int>? contentBytes;
+
+    // If no plaintext, try to decrypt
+    if (content.isEmpty) {
+      final encryptedRaw = json['encrypted_content'];
+      contentBytes = _parseEncryptedContent(encryptedRaw);
+
+      if (contentBytes != null && _encryption != null) {
+        // Try to decrypt with the core
+        final senderId = json['sender_id'] as String;
+        final currentId = currentUserId;
+
+        // Only decrypt messages FROM others (we already know our own plaintext)
+        if (senderId != currentId) {
+          final decrypted = await _encryption!.decrypt(
+            senderId,
+            Uint8List.fromList(contentBytes),
+          );
+          if (decrypted != null) {
+            content = decrypted;
+          } else {
+            // Decryption failed — show raw bytes as string
+            content = _bytesToString(contentBytes);
+          }
+        } else {
+          content = _bytesToString(contentBytes);
+        }
+      } else if (contentBytes != null) {
+        content = _bytesToString(contentBytes);
+      }
+    }
+
+    return Message(
+      id: json['id'],
+      senderId: json['sender_id'],
+      recipientId: json['recipient_id'],
+      content: content,
+      encryptedContent: contentBytes,
+      messageType: json['message_type'] ?? 'text',
+      status: json['status'] ?? 'sent',
+      sentAt: DateTime.parse(json['sent_at']),
+      deliveredAt: json['delivered_at'] != null
+          ? DateTime.parse(json['delivered_at'])
+          : null,
+      readAt: json['read_at'] != null ? DateTime.parse(json['read_at']) : null,
+    );
+  }
+
+  // ─── Conversations list ───
+
   Future<List<Conversation>> getConversations() async {
     if (currentUserId == null) return [];
 
     try {
-      // Get distinct users we've messaged with
       final sentTo = await _client
           .from('messages')
           .select('recipient_id')
@@ -248,7 +278,6 @@ class MessageService {
           .eq('recipient_id', currentUserId!)
           .order('sent_at', ascending: false);
 
-      // Combine unique user IDs
       final Set<String> userIds = {};
       for (var msg in sentTo) {
         userIds.add(msg['recipient_id']);
@@ -259,77 +288,40 @@ class MessageService {
 
       if (userIds.isEmpty) return [];
 
-      // Get user details
       final users = await _client
           .from('users')
           .select('id, display_name, is_online')
           .inFilter('id', userIds.toList());
 
-      // Build conversations with last message
       List<Conversation> conversations = [];
       for (var user in users) {
         final oderId = user['id'];
 
-        // Get last message
+        // Last message
         final lastMsgResponse = await _client
             .from('messages')
             .select()
-            .or('and(sender_id.eq.$currentUserId,recipient_id.eq.$oderId),and(sender_id.eq.$oderId,recipient_id.eq.$currentUserId)')
+            .or('and(sender_id.eq.$currentUserId,recipient_id.eq.$oderId),'
+                'and(sender_id.eq.$oderId,recipient_id.eq.$currentUserId)')
             .order('sent_at', ascending: false)
             .limit(1);
 
         String? lastMessage;
         DateTime? lastMessageTime;
         if (lastMsgResponse.isNotEmpty) {
-          // Use plain text content if available
           lastMessage = lastMsgResponse[0]['content_text'];
 
-          // Fall back to encrypted_content decoding
           if (lastMessage == null || lastMessage.isEmpty) {
             final encContent = lastMsgResponse[0]['encrypted_content'];
-            if (encContent != null) {
-              // Handle different formats from Supabase
-              if (encContent is String) {
-                String strContent = encContent;
-
-                // Try base64 first (new format)
-                try {
-                  final bytes = base64Decode(strContent);
-                  lastMessage = String.fromCharCodes(bytes);
-                } catch (e) {
-                  // Not base64, try other formats
-                  if (strContent.startsWith('[') && strContent.endsWith(']')) {
-                    try {
-                      final List<dynamic> decoded = jsonDecode(strContent);
-                      lastMessage = String.fromCharCodes(decoded.cast<int>());
-                    } catch (e) {
-                      lastMessage = strContent;
-                    }
-                  } else if (strContent.startsWith('\\x')) {
-                    String hexStr = strContent.substring(2);
-                    try {
-                      List<int> bytes = [];
-                      for (int i = 0; i < hexStr.length; i += 2) {
-                        bytes.add(
-                            int.parse(hexStr.substring(i, i + 2), radix: 16));
-                      }
-                      lastMessage = String.fromCharCodes(bytes);
-                    } catch (e) {
-                      lastMessage = hexStr;
-                    }
-                  } else {
-                    lastMessage = strContent;
-                  }
-                }
-              } else if (encContent is List) {
-                lastMessage = String.fromCharCodes(List<int>.from(encContent));
-              }
+            final bytes = _parseEncryptedContent(encContent);
+            if (bytes != null) {
+              lastMessage = _bytesToString(bytes);
             }
           }
           lastMessageTime = DateTime.parse(lastMsgResponse[0]['sent_at']);
         }
 
-        // Count unread
+        // Unread count
         final unreadResponse = await _client
             .from('messages')
             .select()
@@ -347,7 +339,6 @@ class MessageService {
         ));
       }
 
-      // Sort by last message time
       conversations.sort((a, b) {
         if (a.lastMessageTime == null) return 1;
         if (b.lastMessageTime == null) return -1;
@@ -356,16 +347,17 @@ class MessageService {
 
       return conversations;
     } catch (e) {
-      print('Error getting conversations: $e');
+      print('[MessageService] Conversations error: $e');
       return [];
     }
   }
 
-  /// Subscribe to new messages (realtime)
+  // ─── Realtime ───
+
+  /// Subscribe to new message inserts and status updates.
   void subscribeToMessages() {
     if (currentUserId == null) return;
 
-    // Use Supabase Realtime channels for INSERT events
     final channel = _client.channel('messages_channel_$currentUserId');
 
     channel
@@ -378,55 +370,33 @@ class MessageService {
             column: 'recipient_id',
             value: currentUserId!,
           ),
-          callback: (payload) {
+          callback: (payload) async {
             final json = payload.newRecord;
+            final msg = await _parseMessage(json);
 
-            // Use plain text content if available
-            String content = json['content_text'] ?? '';
+            _messageController.add(msg);
 
-            // Fall back to encrypted_content decoding
-            if (content.isEmpty) {
-              final encContent = json['encrypted_content'];
-              if (encContent != null && encContent is String) {
-                content = encContent;
-              }
-            }
-
-            _messageController.add(Message(
-              id: json['id'],
-              senderId: json['sender_id'],
-              recipientId: json['recipient_id'],
-              content: content,
-              status: json['status'] ?? 'sent',
-              sentAt: DateTime.parse(json['sent_at']),
-            ));
+            // Auto mark as delivered
+            markAsDelivered(msg.id);
           },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.update,
           schema: 'public',
           table: 'messages',
-          callback: (payload) {
-            // Notify about message updates (e.g., status changes for read receipts)
+          callback: (payload) async {
             final json = payload.newRecord;
-            String content = json['content_text'] ?? '';
-
-            _messageController.add(Message(
-              id: json['id'],
-              senderId: json['sender_id'],
-              recipientId: json['recipient_id'],
-              content: content,
-              status: json['status'] ?? 'sent',
-              sentAt: DateTime.parse(json['sent_at']),
-            ));
+            final msg = await _parseMessage(json);
+            _messageController.add(msg);
           },
         )
         .subscribe((status, [error]) {
-      // Subscription active
+      print('[Realtime] Subscription status: $status');
     });
   }
 
-  /// Mark message as read
+  // ─── Read receipts ───
+
   Future<void> markAsRead(String messageId) async {
     try {
       await _client.from('messages').update({
@@ -434,11 +404,10 @@ class MessageService {
         'read_at': DateTime.now().toIso8601String(),
       }).eq('id', messageId);
     } catch (e) {
-      print('Error marking message as read: $e');
+      print('[MessageService] markAsRead error: $e');
     }
   }
 
-  /// Mark message as delivered
   Future<void> markAsDelivered(String messageId) async {
     try {
       await _client.from('messages').update({
@@ -446,11 +415,82 @@ class MessageService {
         'delivered_at': DateTime.now().toIso8601String(),
       }).eq('id', messageId);
     } catch (e) {
-      print('Error marking message as delivered: $e');
+      print('[MessageService] markAsDelivered error: $e');
     }
   }
 
-  /// Cleanup
+  // ─── Retry queue flush ───
+
+  /// Try to send all queued messages. Call this when connectivity returns.
+  Future<int> flushRetryQueue() async {
+    if (_encryption == null) return 0;
+
+    final queued = await _encryption!.getPendingQueue();
+    if (queued.isEmpty) return 0;
+
+    final sentIds = <String>[];
+    for (final msg in queued) {
+      try {
+        await _client.from('messages').insert({
+          'sender_id': currentUserId,
+          'recipient_id': msg.recipientId,
+          'encrypted_content': msg.encryptedContent.toList(),
+          'message_type': 'text',
+          'status': 'sent',
+        });
+        sentIds.add(msg.id);
+      } catch (e) {
+        print('[MessageService] Retry send failed for ${msg.id}: $e');
+      }
+    }
+
+    await _encryption!.flushQueue(sentIds);
+    print('[MessageService] Flushed ${sentIds.length} queued messages');
+    return sentIds.length;
+  }
+
+  // ─── Helpers ───
+
+  /// Parse encrypted_content from Supabase (handles hex, base64, List, JSON).
+  List<int>? _parseEncryptedContent(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is List) return List<int>.from(raw);
+
+    if (raw is String) {
+      // Hex string
+      if (raw.startsWith('\\x') || raw.startsWith('\\\\x')) {
+        final hex = raw.replaceAll(RegExp(r'^\\+x'), '');
+        final bytes = <int>[];
+        for (var i = 0; i < hex.length; i += 2) {
+          bytes.add(int.parse(hex.substring(i, i + 2), radix: 16));
+        }
+        return bytes;
+      }
+      // JSON array
+      if (raw.startsWith('[') && raw.endsWith(']')) {
+        try {
+          return List<int>.from(jsonDecode(raw));
+        } catch (_) {}
+      }
+      // Base64
+      try {
+        return base64Decode(raw).toList();
+      } catch (_) {}
+      // Plain text codeUnits
+      return raw.codeUnits;
+    }
+    return null;
+  }
+
+  /// Best-effort bytes → readable string.
+  String _bytesToString(List<int> bytes) {
+    try {
+      return String.fromCharCodes(bytes);
+    } catch (_) {
+      return '<encrypted>';
+    }
+  }
+
   void dispose() {
     _messageSubscription?.cancel();
     _messageController.close();
