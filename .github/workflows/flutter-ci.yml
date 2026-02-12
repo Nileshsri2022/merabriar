@@ -1,0 +1,59 @@
+name: Flutter CI — Test & Analyze
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'flutter_app/**'
+      - '.github/workflows/flutter-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'flutter_app/**'
+
+defaults:
+  run:
+    working-directory: flutter_app
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Check test coverage report
+        run: |
+          if [ -f coverage/lcov.info ]; then
+            echo "✅ Coverage report generated at coverage/lcov.info"
+            # Print summary line counts
+            TOTAL=$(grep -c 'end_of_record' coverage/lcov.info || echo "0")
+            echo "📊 Coverage entries: $TOTAL files"
+          else
+            echo "⚠️ No coverage report generated"
+          fi
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: flutter_app/coverage/lcov.info
+          retention-days: 30
