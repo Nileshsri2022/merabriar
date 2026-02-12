@@ -1,7 +1,7 @@
 # Post-MVP Implementation Plan (Week 9+)
 
 **Date:** February 12, 2026  
-**Status:** 🚧 In Progress (P1–P3 Complete)
+**Status:** ✅ P1–P4 Complete · 109 tests passing
 **Based on:** Skills audit (`flutter-expert`, `flutter-testing`, `flutter-animations`, `supabase-postgres-best-practices`, `find-skills`)
 
 ---
@@ -51,9 +51,9 @@ Currently services are accessed via `ref.read(messageServiceProvider)` but there
 - [x] Create `MessagesNotifier` for reactive message list per chat
 - [x] Create `UserProfileNotifier` for current user state
 - [x] Create `AuthFormNotifier` for login form state
-- [ ] Create `OnlineUsersNotifier` for presence tracking
+- [x] Create `OnlineUsersNotifier` for presence tracking
 - [x] Replace manual `setState()` calls with Riverpod `watch()`
-- [ ] Use `Consumer` widgets instead of `ConsumerStatefulWidget` where possible
+- [x] Use `Consumer` widgets instead of `ConsumerStatefulWidget` where possible
 
 ---
 
@@ -70,7 +70,7 @@ Add polish animations to key interactions:
 - [x] **Typing indicator** — animated dots (implicit animation)
 - [x] **Page transitions** — custom slide/fade between screens
 - [x] **Pulse animation** — for notification badges / status indicators
-- [ ] **Pull-to-refresh** with custom indicator
+- [x] **Pull-to-refresh** with custom branded indicator
 
 ---
 
@@ -78,7 +78,7 @@ Add polish animations to key interactions:
 
 **Skill:** `flutter-testing`
 
-Expanded from 50 → **100 tests** with full model, provider, router, widget, and screen coverage:
+Expanded from 50 → **109 tests** with full model, provider, router, widget, and screen coverage:
 
 **Tasks:**
 - [x] **Provider unit tests** — ConversationsNotifier, MessagesNotifier, AuthFormNotifier
