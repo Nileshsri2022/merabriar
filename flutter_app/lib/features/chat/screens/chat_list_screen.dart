@@ -8,6 +8,7 @@ import '../../../core/widgets/connectivity_banner.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../services/message_service.dart';
 import '../../../services/user_service.dart';
+import '../providers/chat_providers.dart';
 
 /// Premium Chat List Screen
 class ChatListScreen extends ConsumerStatefulWidget {
@@ -19,11 +20,6 @@ class ChatListScreen extends ConsumerStatefulWidget {
 
 class _ChatListScreenState extends ConsumerState<ChatListScreen>
     with SingleTickerProviderStateMixin, ConnectivityMixin {
-  List<Conversation> _conversations = [];
-  List<UserProfile> _allUsers = [];
-  bool _loading = true;
-  String? _error;
-
   late AnimationController _fabController;
   late Animation<double> _fabScale;
 
@@ -44,7 +40,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     messageService.subscribeToMessages();
 
     messageService.messageStream.listen((_) {
-      _loadConversations();
+      ref.read(conversationsProvider.notifier).refresh();
     });
   }
 
@@ -56,14 +52,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
 
   @override
   void onConnectivityChanged(ConnectivityStatus status) {
-    if (status == ConnectivityStatus.online && _error != null) {
+    final convState = ref.read(conversationsProvider);
+    if (status == ConnectivityStatus.online && convState.error != null) {
       _loadData();
     }
   }
 
   Future<void> _loadData() async {
-    setState(() => _loading = true);
-
     final hasProfile = await userService.hasProfile();
     if (!hasProfile) {
       final email = Supabase.instance.client.auth.currentUser?.email ?? '';
@@ -71,38 +66,20 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       await userService.createOrUpdateProfile(displayName: displayName);
     }
 
-    await _loadConversations();
-    await _loadAllUsers();
+    await ref.read(conversationsProvider.notifier).load();
+    // Refresh allUsersProvider
+    ref.invalidate(allUsersProvider);
 
-    setState(() => _loading = false);
     _fabController.forward();
-  }
-
-  Future<void> _loadConversations() async {
-    try {
-      final conversations = await messageService.getConversations();
-      setState(() {
-        _conversations = conversations;
-        _error = null;
-      });
-    } catch (e) {
-      setState(() => _error = e.toString());
-    }
-  }
-
-  Future<void> _loadAllUsers() async {
-    try {
-      final users = await userService.getAllUsers();
-      setState(() => _allUsers = users);
-    } catch (e) {
-      print('Error loading users: $e');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final convState = ref.watch(conversationsProvider);
+    final usersAsync = ref.watch(allUsersProvider);
+    final allUsers = usersAsync.valueOrNull ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -177,7 +154,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
             },
           ),
           Expanded(
-            child: _loading ? _buildShimmerList() : _buildBody(theme, isDark),
+            child: convState.loading
+                ? _buildShimmerList()
+                : _buildBody(theme, isDark, convState, allUsers),
           ),
         ],
       ),
@@ -204,13 +183,14 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   }
 
   // ── Main Body ──
-  Widget _buildBody(ThemeData theme, bool isDark) {
-    if (_error != null) {
+  Widget _buildBody(ThemeData theme, bool isDark, ConversationsState convState,
+      List<UserProfile> allUsers) {
+    if (convState.error != null) {
       return ErrorStateWidget.connection(onRetry: _loadData);
     }
 
-    if (_conversations.isEmpty) {
-      return _buildEmptyState(theme);
+    if (convState.conversations.isEmpty) {
+      return _buildEmptyState(theme, allUsers);
     }
 
     return RefreshIndicator(
@@ -218,11 +198,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
       color: AppTheme.brandGreen,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 4),
-        itemCount: _conversations.length,
+        itemCount: convState.conversations.length,
         separatorBuilder: (_, __) =>
             const Divider(indent: 82, endIndent: 16, height: 0),
         itemBuilder: (context, index) {
-          final conv = _conversations[index];
+          final conv = convState.conversations[index];
           return _ConversationTile(
             conversation: conv,
             onTap: () {
@@ -230,7 +210,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                   .push(
                     '/chats/${conv.oderId}?name=${Uri.encodeComponent(conv.odername)}',
                   )
-                  .then((_) => _loadConversations());
+                  .then((_) =>
+                      ref.read(conversationsProvider.notifier).refresh());
             },
             onLongPress: () => _showContactProfile(conv),
           );
@@ -240,7 +221,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   }
 
   // ── Empty State ──
-  Widget _buildEmptyState(ThemeData theme) {
+  Widget _buildEmptyState(ThemeData theme, List<UserProfile> allUsers) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -275,7 +256,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                 color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
-            if (_allUsers.isNotEmpty) ...[
+            if (allUsers.isNotEmpty) ...[
               const SizedBox(height: 24),
               Container(
                 padding:
@@ -285,7 +266,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${_allUsers.length} contacts available',
+                  '${allUsers.length} contacts available',
                   style: TextStyle(
                     color: AppTheme.brandGreen,
                     fontWeight: FontWeight.w500,
@@ -377,7 +358,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                                   .push(
                                     '/chats/${user.id}?name=${Uri.encodeComponent(user.displayName ?? 'Unknown')}',
                                   )
-                                  .then((_) => _loadConversations());
+                                  .then((_) => ref
+                                      .read(conversationsProvider.notifier)
+                                      .refresh());
                             },
                           );
                         },
@@ -435,47 +418,55 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
             ),
             const Divider(height: 0),
             Expanded(
-              child: _allUsers.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.people_outline,
-                              size: 48, color: Colors.grey.shade400),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No contacts found',
-                            style: TextStyle(color: Colors.grey.shade500),
+              child: ref.watch(allUsersProvider).when(
+                    data: (allUsers) => allUsers.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.people_outline,
+                                    size: 48, color: Colors.grey.shade400),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No contacts found',
+                                  style: TextStyle(color: Colors.grey.shade500),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Invite friends to join MeraBriar',
+                                  style: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: scrollController,
+                            itemCount: allUsers.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(indent: 72, height: 0),
+                            itemBuilder: (context, index) {
+                              final user = allUsers[index];
+                              return _UserTile(
+                                user: user,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  context
+                                      .push(
+                                        '/chats/${user.id}?name=${Uri.encodeComponent(user.displayName ?? 'Unknown')}',
+                                      )
+                                      .then((_) => ref
+                                          .read(conversationsProvider.notifier)
+                                          .refresh());
+                                },
+                              );
+                            },
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Invite friends to join MeraBriar',
-                            style: TextStyle(
-                                color: Colors.grey.shade400, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      controller: scrollController,
-                      itemCount: _allUsers.length,
-                      separatorBuilder: (_, __) =>
-                          const Divider(indent: 72, height: 0),
-                      itemBuilder: (context, index) {
-                        final user = _allUsers[index];
-                        return _UserTile(
-                          user: user,
-                          onTap: () {
-                            Navigator.pop(context);
-                            context
-                                .push(
-                                  '/chats/${user.id}?name=${Uri.encodeComponent(user.displayName ?? 'Unknown')}',
-                                )
-                                .then((_) => _loadConversations());
-                          },
-                        );
-                      },
-                    ),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(child: Text('Error: $e')),
+                  ),
             ),
           ],
         ),
