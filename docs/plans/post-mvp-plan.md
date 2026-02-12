@@ -74,15 +74,18 @@ Add polish animations to key interactions:
 
 ---
 
-### 🟡 Priority 4: Comprehensive Test Suite
+### 🚧 Priority 4: Comprehensive Test Suite
 
 **Skill:** `flutter-testing`
 
-Expand the existing 25 tests to full coverage:
+Expanded from 50 → 85 tests with provider, router, and screen coverage:
 
 **Tasks:**
-- [ ] **Mock Supabase client** for service-level tests
-- [ ] **Widget tests for all screens** (login, settings, splash)
+- [x] **Provider unit tests** — ConversationsNotifier, MessagesNotifier, AuthFormNotifier
+- [x] **State class tests** — ConversationsState, MessagesState, AuthFormState copyWith
+- [x] **Router tests** — AppRoutes constants, route configuration verification
+- [x] **Screen widget tests** — SplashScreen (rendering + navigation)
+- [ ] **Mock Supabase client** for service-level tests (LoginScreen, SettingsScreen blocked by Supabase.instance)
 - [ ] **Integration tests** with `IntegrationTestWidgetsFlutterBinding`
 - [ ] **Mock platform channels** for Rust/Go FFI bridge tests
 - [ ] **Performance tests** — message list scrolling, conversation list scrolling
