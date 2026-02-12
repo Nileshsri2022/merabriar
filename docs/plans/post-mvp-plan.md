@@ -1,7 +1,7 @@
 # Post-MVP Implementation Plan (Week 9+)
 
 **Date:** February 12, 2026  
-**Status:** 📋 Planning  
+**Status:** 🚧 In Progress (P1–P3 Complete)
 **Based on:** Skills audit (`flutter-expert`, `flutter-testing`, `flutter-animations`, `supabase-postgres-best-practices`, `find-skills`)
 
 ---
@@ -20,7 +20,7 @@
 
 ## Prioritized Next Steps
 
-### 🔴 Priority 1: Navigation Overhaul (GoRouter)
+### ✅ Priority 1: Navigation Overhaul (GoRouter)
 
 **Skill:** `flutter-expert` → `references/gorouter-navigation.md`
 
@@ -31,42 +31,45 @@ The app currently uses manual `Navigator.push()` throughout. Migrating to GoRout
 - Play well with the existing `AppLinks` deep link setup
 
 **Tasks:**
-- [ ] Add `go_router` dependency
-- [ ] Define `GoRouter` configuration with auth guard
-- [ ] Replace all `Navigator.push` / `Navigator.pushReplacement` calls
-- [ ] Integrate with Supabase auth state for redirect-on-logout
-- [ ] Support deep link `/chat/:recipientId` from magic link callback
+- [x] Add `go_router` dependency
+- [x] Define `GoRouter` configuration with auth guard
+- [x] Replace all `Navigator.push` / `Navigator.pushReplacement` calls
+- [x] Integrate with Supabase auth state for redirect-on-logout
+- [x] Support deep link `/chat/:recipientId` from magic link callback
+- [x] Custom page transitions (fade, slide-up, slide-right)
 
 ---
 
-### 🔴 Priority 2: State Management Migration (Riverpod Providers)
+### ✅ Priority 2: State Management Migration (Riverpod Providers)
 
 **Skill:** `flutter-expert` → `references/riverpod-state.md`
 
 Currently services are accessed via `ref.read(messageServiceProvider)` but there's no reactive state management. Move to proper Riverpod `AsyncNotifier` / `StateNotifier` patterns:
 
 **Tasks:**
-- [ ] Create `ConversationsNotifier` for reactive chat list
-- [ ] Create `MessagesNotifier` for reactive message list per chat
-- [ ] Create `UserProfileNotifier` for current user state
+- [x] Create `ConversationsNotifier` for reactive chat list
+- [x] Create `MessagesNotifier` for reactive message list per chat
+- [x] Create `UserProfileNotifier` for current user state
+- [x] Create `AuthFormNotifier` for login form state
 - [ ] Create `OnlineUsersNotifier` for presence tracking
-- [ ] Replace manual `setState()` calls with Riverpod `watch()`
+- [x] Replace manual `setState()` calls with Riverpod `watch()`
 - [ ] Use `Consumer` widgets instead of `ConsumerStatefulWidget` where possible
 
 ---
 
-### 🟡 Priority 3: Advanced Animations
+### ✅ Priority 3: Advanced Animations
 
 **Skill:** `flutter-animations`
 
 Add polish animations to key interactions:
 
 **Tasks:**
-- [ ] **Hero transitions** — avatar from chat list → chat screen
-- [ ] **Staggered list animations** — conversations slide in on load
-- [ ] **Message send animation** — bubble slides up from input bar
-- [ ] **Typing indicator** — animated dots (implicit animation)
-- [ ] **Page transitions** — custom slide/fade between screens
+- [x] **Hero transitions** — avatar from chat list → chat screen
+- [x] **Staggered list animations** — conversations slide in on load
+- [x] **Message send animation** — bubble slides up from input bar
+- [x] **Typing indicator** — animated dots (implicit animation)
+- [x] **Page transitions** — custom slide/fade between screens
+- [x] **Pulse animation** — for notification badges / status indicators
 - [ ] **Pull-to-refresh** with custom indicator
 
 ---
