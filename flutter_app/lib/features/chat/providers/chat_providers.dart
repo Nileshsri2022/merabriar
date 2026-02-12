@@ -167,9 +167,60 @@ final messagesProvider =
 );
 
 // ══════════════════════════════════════════════════════════════
-// Online Users — tracks who's currently online
+// Online Users — tracks who's currently online via Presence
 // ══════════════════════════════════════════════════════════════
 
+/// State tracking which user IDs are currently online.
+class OnlineUsersState {
+  final Set<String> onlineIds;
+
+  const OnlineUsersState({this.onlineIds = const {}});
+
+  bool isOnline(String userId) => onlineIds.contains(userId);
+
+  OnlineUsersState copyWith({Set<String>? onlineIds}) {
+    return OnlineUsersState(onlineIds: onlineIds ?? this.onlineIds);
+  }
+}
+
+/// Reactive notifier for online presence.
+/// Subscribes to Supabase Presence channel and emits updates.
+class OnlineUsersNotifier extends StateNotifier<OnlineUsersState> {
+  OnlineUsersNotifier() : super(const OnlineUsersState());
+
+  /// Start listening to presence updates from UserService.
+  void subscribe() {
+    userService.subscribeToPresence(
+      onSync: (onlineUserIds) {
+        state = state.copyWith(onlineIds: onlineUserIds.toSet());
+      },
+    );
+  }
+
+  /// Stop listening and clear state.
+  Future<void> unsubscribe() async {
+    await userService.untrackPresence();
+    state = const OnlineUsersState();
+  }
+
+  /// Manually mark a user online (e.g. from a realtime event).
+  void setOnline(String userId) {
+    state = state.copyWith(onlineIds: {...state.onlineIds, userId});
+  }
+
+  /// Manually mark a user offline.
+  void setOffline(String userId) {
+    final ids = {...state.onlineIds}..remove(userId);
+    state = state.copyWith(onlineIds: ids);
+  }
+}
+
+final onlineUsersProvider =
+    StateNotifierProvider<OnlineUsersNotifier, OnlineUsersState>(
+  (ref) => OnlineUsersNotifier(),
+);
+
+/// All users list — fetched once for contact discovery.
 final allUsersProvider = FutureProvider<List<UserProfile>>((ref) async {
   return await userService.getAllUsers();
 });

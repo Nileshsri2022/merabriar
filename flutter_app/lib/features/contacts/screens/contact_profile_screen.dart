@@ -7,7 +7,7 @@ import '../../../services/user_service.dart';
 import '../../chat/providers/chat_providers.dart';
 
 /// Contact profile screen — shows user details and actions
-class ContactProfileScreen extends ConsumerStatefulWidget {
+class ContactProfileScreen extends ConsumerWidget {
   final String userId;
   final String displayName;
 
@@ -18,14 +18,8 @@ class ContactProfileScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ContactProfileScreen> createState() =>
-      _ContactProfileScreenState();
-}
-
-class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
-  @override
-  Widget build(BuildContext context) {
-    final userAsync = ref.watch(userProfileProvider(widget.userId));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(userProfileProvider(userId));
     final user = userAsync.valueOrNull;
 
     return Scaffold(
@@ -61,7 +55,7 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
                       Stack(
                         children: [
                           Hero(
-                            tag: 'contact-avatar-${widget.userId}',
+                            tag: 'contact-avatar-$userId',
                             child: Container(
                               width: 100,
                               height: 100,
@@ -75,8 +69,8 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
                               ),
                               child: Center(
                                 child: Text(
-                                  widget.displayName.isNotEmpty
-                                      ? widget.displayName[0].toUpperCase()
+                                  displayName.isNotEmpty
+                                      ? displayName[0].toUpperCase()
                                       : '?',
                                   style: const TextStyle(
                                     fontSize: 40,
@@ -109,7 +103,7 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
 
                       // Name
                       Text(
-                        widget.displayName,
+                        displayName,
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -147,7 +141,7 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
                     label: 'Message',
                     onTap: () {
                       context.pushReplacement(
-                        '/chats/${widget.userId}?name=${Uri.encodeComponent(widget.displayName)}',
+                        '/chats/$userId?name=${Uri.encodeComponent(displayName)}',
                       );
                     },
                   ),
@@ -190,7 +184,7 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
                       _InfoTile(
                         icon: Icons.fingerprint,
                         title: 'User ID',
-                        subtitle: _truncateId(widget.userId),
+                        subtitle: _truncateId(userId),
                       ),
                       const Divider(indent: 56),
                       _InfoTile(
@@ -292,7 +286,7 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Block Contact'),
         content: Text(
-          'Block ${widget.displayName}? They won\'t be able to send you messages.',
+          'Block $displayName? They won\'t be able to send you messages.',
         ),
         actions: [
           TextButton(
@@ -302,12 +296,12 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              final success = await userService.blockContact(widget.userId);
-              if (mounted) {
+              final success = await userService.blockContact(userId);
+              if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(success
-                        ? '${widget.displayName} blocked'
+                        ? '$displayName blocked'
                         : 'Failed to block contact'),
                     backgroundColor:
                         success ? AppTheme.danger : AppTheme.warning,

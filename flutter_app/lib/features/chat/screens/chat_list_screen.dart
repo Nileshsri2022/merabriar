@@ -70,6 +70,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
     await ref.read(conversationsProvider.notifier).load();
     // Refresh allUsersProvider
     ref.invalidate(allUsersProvider);
+    // Start presence tracking
+    ref.read(onlineUsersProvider.notifier).subscribe();
 
     _fabController.forward();
   }
@@ -187,17 +189,47 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   Widget _buildBody(ThemeData theme, bool isDark, ConversationsState convState,
       List<UserProfile> allUsers) {
     if (convState.error != null) {
-      return ErrorStateWidget.connection(onRetry: _loadData);
+      return RefreshIndicator(
+        onRefresh: _loadData,
+        color: AppTheme.brandGreen,
+        backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
+        displacement: 50,
+        strokeWidth: 2.5,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: ErrorStateWidget.connection(onRetry: _loadData),
+          ),
+        ),
+      );
     }
 
     if (convState.conversations.isEmpty) {
-      return _buildEmptyState(theme, allUsers);
+      return RefreshIndicator(
+        onRefresh: _loadData,
+        color: AppTheme.brandGreen,
+        backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
+        displacement: 50,
+        strokeWidth: 2.5,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: _buildEmptyState(theme, allUsers),
+          ),
+        ),
+      );
     }
 
     return RefreshIndicator(
       onRefresh: _loadData,
       color: AppTheme.brandGreen,
+      backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
+      displacement: 50,
+      strokeWidth: 2.5,
       child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 4),
         itemCount: convState.conversations.length,
         separatorBuilder: (_, __) =>

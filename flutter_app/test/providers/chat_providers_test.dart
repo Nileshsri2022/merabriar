@@ -251,6 +251,85 @@ void main() {
       expect(notifier.state.messages.first.status, 'sent');
     });
   });
+
+  // ══════════════════════════════════════════════════════════════
+  // OnlineUsersState tests
+  // ══════════════════════════════════════════════════════════════
+
+  group('OnlineUsersState', () {
+    test('default state has empty onlineIds', () {
+      const state = OnlineUsersState();
+      expect(state.onlineIds, isEmpty);
+    });
+
+    test('isOnline returns true for known user', () {
+      final state = OnlineUsersState(onlineIds: {'u1', 'u2'});
+      expect(state.isOnline('u1'), isTrue);
+      expect(state.isOnline('u2'), isTrue);
+    });
+
+    test('isOnline returns false for unknown user', () {
+      final state = OnlineUsersState(onlineIds: {'u1'});
+      expect(state.isOnline('u99'), isFalse);
+    });
+
+    test('copyWith replaces onlineIds set', () {
+      final state = OnlineUsersState(onlineIds: {'u1'});
+      final updated = state.copyWith(onlineIds: {'u2', 'u3'});
+      expect(updated.onlineIds, {'u2', 'u3'});
+      expect(updated.isOnline('u1'), isFalse);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // OnlineUsersNotifier — local logic tests
+  // ══════════════════════════════════════════════════════════════
+
+  group('OnlineUsersNotifier', () {
+    test('setOnline adds userId to set', () {
+      final notifier = OnlineUsersNotifier();
+      notifier.setOnline('user-1');
+
+      expect(notifier.state.isOnline('user-1'), isTrue);
+    });
+
+    test('setOnline is idempotent', () {
+      final notifier = OnlineUsersNotifier();
+      notifier.setOnline('user-1');
+      notifier.setOnline('user-1');
+
+      expect(notifier.state.onlineIds.length, 1);
+    });
+
+    test('setOffline removes userId from set', () {
+      final notifier = OnlineUsersNotifier();
+      notifier.setOnline('user-1');
+      notifier.setOnline('user-2');
+      notifier.setOffline('user-1');
+
+      expect(notifier.state.isOnline('user-1'), isFalse);
+      expect(notifier.state.isOnline('user-2'), isTrue);
+    });
+
+    test('setOffline is safe for unknown user', () {
+      final notifier = OnlineUsersNotifier();
+      notifier.setOffline('non-existent');
+
+      expect(notifier.state.onlineIds, isEmpty);
+    });
+
+    test('multiple users tracked simultaneously', () {
+      final notifier = OnlineUsersNotifier();
+      notifier.setOnline('a');
+      notifier.setOnline('b');
+      notifier.setOnline('c');
+
+      expect(notifier.state.onlineIds.length, 3);
+      expect(notifier.state.isOnline('a'), isTrue);
+      expect(notifier.state.isOnline('b'), isTrue);
+      expect(notifier.state.isOnline('c'), isTrue);
+    });
+  });
 }
 
 /// Helper to create a test message
