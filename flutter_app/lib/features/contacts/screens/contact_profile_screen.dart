@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../config/app_theme.dart';
 import '../../../services/user_service.dart';
-import '../../chat/screens/chat_screen.dart';
 
 /// Contact profile screen — shows user details and actions
 class ContactProfileScreen extends ConsumerStatefulWidget {
@@ -159,14 +159,8 @@ class _ContactProfileScreenState extends ConsumerState<ContactProfileScreen> {
                     icon: Icons.chat_bubble,
                     label: 'Message',
                     onTap: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatScreen(
-                            recipientId: widget.userId,
-                            recipientName: widget.displayName,
-                          ),
-                        ),
+                      context.pushReplacement(
+                        '/chats/${widget.userId}?name=${Uri.encodeComponent(widget.displayName)}',
                       );
                     },
                   ),

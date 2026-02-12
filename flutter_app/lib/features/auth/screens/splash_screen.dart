@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../config/app_theme.dart';
 import '../../../core/di/providers.dart';
-import 'login_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -61,21 +61,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     try {
       await ref.read(initializeCoreProvider.future);
-      print('Core initialized with: $activeCoreLog');
+      debugPrint('Core initialized with: $activeCoreLog');
     } catch (e) {
-      print('Error initializing core: $e');
+      debugPrint('Error initializing core: $e');
     }
 
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const LoginScreen(),
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      );
+      context.go('/login');
     }
   }
 

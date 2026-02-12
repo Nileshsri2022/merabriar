@@ -40,6 +40,9 @@ dependencies:
   app_links: ^6.4.1
   flutter_rust_bridge: ^2.11.1
 
+  # Navigation
+  go_router: ^14.8.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

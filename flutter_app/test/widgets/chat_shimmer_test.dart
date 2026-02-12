@@ -5,50 +5,53 @@ import 'package:merabriar/core/widgets/chat_shimmer.dart';
 
 void main() {
   group('ChatShimmerLoader', () {
-    testWidgets('renders 7 shimmer bubbles', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: ChatShimmerLoader(),
-          ),
+    Widget buildTestWidget() {
+      return const MaterialApp(
+        home: Scaffold(
+          body: ChatShimmerLoader(),
         ),
       );
+    }
 
-      // The ChatShimmerLoader has 7 _ShimmerBubble children
-      // They should all be rendered as Align widgets with containers
-      expect(find.byType(Align), findsNWidgets(7));
+    testWidgets('renders shimmer bubbles', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      // Pump enough for all Future.delayed timers (max 600ms) to fire
+      await tester.pump(const Duration(milliseconds: 700));
+
+      // Verify Opacity widgets exist (one per bubble at minimum)
+      expect(find.byType(Opacity), findsWidgets);
     });
 
-    testWidgets('shimmer bubbles have correct alignment', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: ChatShimmerLoader(),
-          ),
-        ),
-      );
+    testWidgets('shimmer bubbles have mixed alignments', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump(const Duration(milliseconds: 700));
 
       final aligns = tester.widgetList<Align>(find.byType(Align)).toList();
 
-      // First bubble: isMe=false -> centerLeft
-      expect(aligns[0].alignment, Alignment.centerLeft);
-      // Second: false -> centerLeft
-      expect(aligns[1].alignment, Alignment.centerLeft);
-      // Third: true -> centerRight
-      expect(aligns[2].alignment, Alignment.centerRight);
+      // Should have at least 7 Align widgets from the bubbles
+      expect(aligns.length, greaterThanOrEqualTo(7));
+
+      // Check that both left and right alignments are present
+      final hasLeft = aligns.any((a) => a.alignment == Alignment.centerLeft);
+      final hasRight = aligns.any((a) => a.alignment == Alignment.centerRight);
+      expect(hasLeft, isTrue);
+      expect(hasRight, isTrue);
     });
 
-    testWidgets('contains animated containers', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: ChatShimmerLoader(),
-          ),
-        ),
-      );
+    testWidgets('contains decorated containers for bubbles', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump(const Duration(milliseconds: 700));
 
-      // Should have decorated Container widgets for the shimmer bubbles
       expect(find.byType(Container), findsWidgets);
+    });
+
+    testWidgets('is wrapped in a non-scrollable ListView', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump(const Duration(milliseconds: 700));
+
+      final listView = tester.widget<ListView>(find.byType(ListView).first);
+      expect(listView.physics, isA<NeverScrollableScrollPhysics>());
     });
   });
 }

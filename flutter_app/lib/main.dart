@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/app_theme.dart';
+import 'config/router.dart';
 import 'config/supabase_config.dart';
-import 'features/auth/screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,18 +50,26 @@ class _MeraBriarAppState extends State<MeraBriarApp> {
         _handleDeepLink(initialUri);
       }
     } catch (e) {
-      print('Error getting initial link: $e');
+      debugPrint('Error getting initial link: $e');
     }
   }
 
   void _handleDeepLink(Uri uri) {
-    print('Deep link received: $uri');
-    // Supabase handles the auth callback automatically
+    debugPrint('Deep link received: $uri');
+    // Supabase handles the auth callback automatically.
+    // For chat deep links: merabriar://chat/<recipientId>
+    if (uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'chat') {
+      final recipientId =
+          uri.pathSegments.length > 1 ? uri.pathSegments[1] : null;
+      if (recipientId != null) {
+        appRouter.go('/chats/$recipientId');
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'MeraBriar',
       debugShowCheckedModeBanner: false,
 
@@ -70,7 +78,8 @@ class _MeraBriarAppState extends State<MeraBriarApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
 
-      home: const SplashScreen(),
+      // ── GoRouter ──
+      routerConfig: appRouter,
     );
   }
 }

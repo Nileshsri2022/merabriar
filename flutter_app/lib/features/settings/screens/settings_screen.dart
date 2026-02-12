@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../config/app_theme.dart';
 import '../../../core/di/providers.dart';
 import '../../../services/user_service.dart';
-import '../../auth/screens/login_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -94,10 +94,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await userService.setOnlineStatus(false);
       await Supabase.instance.client.auth.signOut();
       if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (_) => false,
-        );
+        context.go('/login');
       }
     }
   }

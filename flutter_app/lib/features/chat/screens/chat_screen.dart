@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../config/app_theme.dart';
 import '../../../core/widgets/chat_shimmer.dart';
 import '../../../core/widgets/connectivity_banner.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../services/message_service.dart';
-import '../../contacts/screens/contact_profile_screen.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String recipientId;
@@ -147,14 +147,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         titleSpacing: 0,
         title: InkWell(
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ContactProfileScreen(
-                  userId: widget.recipientId,
-                  displayName: widget.recipientName,
-                ),
-              ),
+            context.push(
+              '/contact/${widget.recipientId}?name=${Uri.encodeComponent(widget.recipientName)}',
             );
           },
           child: Row(
@@ -214,14 +208,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'profile') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ContactProfileScreen(
-                      userId: widget.recipientId,
-                      displayName: widget.recipientName,
-                    ),
-                  ),
+                context.push(
+                  '/contact/${widget.recipientId}?name=${Uri.encodeComponent(widget.recipientName)}',
                 );
               }
             },

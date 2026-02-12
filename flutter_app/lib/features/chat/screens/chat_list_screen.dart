@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../config/app_theme.dart';
@@ -7,10 +8,6 @@ import '../../../core/widgets/connectivity_banner.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../services/message_service.dart';
 import '../../../services/user_service.dart';
-import '../../auth/screens/login_screen.dart';
-import '../../contacts/screens/contact_profile_screen.dart';
-import '../../settings/screens/settings_screen.dart';
-import 'chat_screen.dart';
 
 /// Premium Chat List Screen
 class ChatListScreen extends ConsumerStatefulWidget {
@@ -127,10 +124,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
+              context.push('/settings');
             },
             tooltip: 'Settings',
           ),
@@ -141,10 +135,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                 await userService.setOnlineStatus(false);
                 await Supabase.instance.client.auth.signOut();
                 if (mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (_) => false,
-                  );
+                  context.go('/login');
                 }
               } else if (value == 'refresh') {
                 _loadData();
@@ -235,15 +226,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
           return _ConversationTile(
             conversation: conv,
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChatScreen(
-                    recipientId: conv.oderId,
-                    recipientName: conv.odername,
-                  ),
-                ),
-              ).then((_) => _loadConversations());
+              context
+                  .push(
+                    '/chats/${conv.oderId}?name=${Uri.encodeComponent(conv.odername)}',
+                  )
+                  .then((_) => _loadConversations());
             },
             onLongPress: () => _showContactProfile(conv),
           );
@@ -315,14 +302,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
 
   // ── Contact Profile ──
   void _showContactProfile(Conversation conv) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ContactProfileScreen(
-          userId: conv.oderId,
-          displayName: conv.odername,
-        ),
-      ),
+    context.push(
+      '/contact/${conv.oderId}?name=${Uri.encodeComponent(conv.odername)}',
     );
   }
 
@@ -392,16 +373,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                             user: user,
                             onTap: () {
                               Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ChatScreen(
-                                    recipientId: user.id,
-                                    recipientName:
-                                        user.displayName ?? 'Unknown',
-                                  ),
-                                ),
-                              ).then((_) => _loadConversations());
+                              context
+                                  .push(
+                                    '/chats/${user.id}?name=${Uri.encodeComponent(user.displayName ?? 'Unknown')}',
+                                  )
+                                  .then((_) => _loadConversations());
                             },
                           );
                         },
@@ -491,15 +467,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
                           user: user,
                           onTap: () {
                             Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ChatScreen(
-                                  recipientId: user.id,
-                                  recipientName: user.displayName ?? 'Unknown',
-                                ),
-                              ),
-                            ).then((_) => _loadConversations());
+                            context
+                                .push(
+                                  '/chats/${user.id}?name=${Uri.encodeComponent(user.displayName ?? 'Unknown')}',
+                                )
+                                .then((_) => _loadConversations());
                           },
                         );
                       },

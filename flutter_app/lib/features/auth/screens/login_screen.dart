@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../config/app_theme.dart';
 import '../../../core/di/providers.dart' show DevMode;
 import '../../../services/user_service.dart';
-import '../../chat/screens/chat_list_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -53,9 +53,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         }
 
         if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const ChatListScreen()),
-          );
+          context.go('/chats');
         }
       }
     });
@@ -364,11 +362,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     icon: Icons.person,
                                     onTap: () {
                                       DevMode.useNilesh();
-                                      Navigator.of(context).pushReplacement(
-                                        MaterialPageRoute(
-                                            builder: (_) =>
-                                                const ChatListScreen()),
-                                      );
+                                      context.go('/chats');
                                     },
                                   ),
                                 ),
@@ -380,11 +374,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     icon: Icons.person,
                                     onTap: () {
                                       DevMode.useVaishali();
-                                      Navigator.of(context).pushReplacement(
-                                        MaterialPageRoute(
-                                            builder: (_) =>
-                                                const ChatListScreen()),
-                                      );
+                                      context.go('/chats');
                                     },
                                   ),
                                 ),
