@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../config/app_theme.dart';
 import '../../../core/di/providers.dart' show DevMode;
-import '../../../services/user_service.dart';
+import '../providers/auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -18,10 +18,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _displayNameController = TextEditingController();
-
-  bool _loading = false;
-  bool _otpSent = false;
-  String? _error;
 
   late AnimationController _animController;
   late Animation<double> _fadeIn;
@@ -40,17 +36,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     // Listen for auth state changes
     Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       if (data.event == AuthChangeEvent.signedIn) {
-        final user = data.session?.user;
-        if (user != null) {
-          final hasProfile = await userService.hasProfile();
-          if (!hasProfile) {
-            final displayName = _displayNameController.text.trim().isNotEmpty
-                ? _displayNameController.text.trim()
-                : user.email?.split('@').first ?? 'User';
-            await userService.createOrUpdateProfile(displayName: displayName);
-          }
-          await userService.setOnlineStatus(true);
-        }
+        await ref.read(authFormProvider.notifier).handleSignIn(
+              data.session,
+              _displayNameController.text.trim(),
+            );
 
         if (mounted) {
           context.go('/chats');
@@ -69,48 +58,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Future<void> _sendMagicLink() async {
     final email = _emailController.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
-      setState(() => _error = 'Please enter a valid email');
-      return;
-    }
+    await ref.read(authFormProvider.notifier).sendMagicLink(email);
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      await Supabase.instance.client.auth.signInWithOtp(
-        email: email,
-        emailRedirectTo: 'merabriar://login-callback',
+    final authState = ref.read(authFormProvider);
+    if (authState.otpSent && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Check your email for the login link!'),
+          backgroundColor: AppTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
-
-      setState(() {
-        _otpSent = true;
-        _loading = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Check your email for the login link!'),
-            backgroundColor: AppTheme.success,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
-    } on AuthException catch (e) {
-      setState(() {
-        _error = e.message;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
     }
   }
 
@@ -118,6 +78,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final authState = ref.watch(authFormProvider);
 
     return Scaffold(
       body: Container(
@@ -181,7 +142,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        _otpSent
+                        authState.otpSent
                             ? 'Check your email for the login link'
                             : 'Sign in to your secure messenger',
                         style: theme.textTheme.bodyLarge?.copyWith(
@@ -195,7 +156,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        enabled: !_otpSent,
+                        enabled: !authState.otpSent,
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           prefixIcon: Icon(Icons.email_outlined),
@@ -207,7 +168,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       // ── Display Name ──
                       TextField(
                         controller: _displayNameController,
-                        enabled: !_otpSent,
+                        enabled: !authState.otpSent,
                         decoration: const InputDecoration(
                           labelText: 'Display Name (optional)',
                           prefixIcon: Icon(Icons.person_outline),
@@ -218,7 +179,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       const SizedBox(height: 20),
 
                       // ── Error ──
-                      if (_error != null) ...[
+                      if (authState.error != null) ...[
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
@@ -235,7 +196,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  _error!,
+                                  authState.error!,
                                   style: const TextStyle(
                                       color: AppTheme.danger, fontSize: 13),
                                 ),
@@ -247,7 +208,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ],
 
                       // ── OTP Success ──
-                      if (_otpSent) ...[
+                      if (authState.otpSent) ...[
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
@@ -293,23 +254,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         const SizedBox(height: 16),
                         TextButton(
                           onPressed: () {
-                            setState(() {
-                              _otpSent = false;
-                              _error = null;
-                            });
+                            ref.read(authFormProvider.notifier).resetForm();
                           },
                           child: const Text('Use a different email'),
                         ),
                       ],
 
                       // ── Send Button ──
-                      if (!_otpSent) ...[
+                      if (!authState.otpSent) ...[
                         SizedBox(
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: _loading ? null : _sendMagicLink,
-                            child: _loading
+                            onPressed:
+                                authState.loading ? null : _sendMagicLink,
+                            child: authState.loading
                                 ? const SizedBox(
                                     width: 22,
                                     height: 22,
