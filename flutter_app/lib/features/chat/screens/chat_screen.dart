@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/chat_shimmer.dart';
+import '../../../core/widgets/connectivity_banner.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../services/message_service.dart';
 import '../../contacts/screens/contact_profile_screen.dart';
 
@@ -21,13 +24,14 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, ConnectivityMixin {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
 
   List<Message> _messages = [];
   bool _loading = true;
   bool _sending = false;
+  String? _loadError;
 
   late StreamSubscription<Message> _messageSubscription;
 
@@ -61,14 +65,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       setState(() {
         _messages = messages;
         _loading = false;
+        _loadError = null;
       });
 
       _markReceivedMessagesAsRead(messages);
       _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
-      setState(() => _loading = false);
-      print('Error loading messages: $e');
+      setState(() {
+        _loading = false;
+        _loadError = e.toString();
+      });
     }
   }
 
@@ -249,13 +256,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         ),
         child: Column(
           children: [
+            // ── Offline Banner ──
+            ConnectivityBanner(
+              isOffline: isOffline,
+              onRetry: recheckConnectivity,
+            ),
+
             // ── Messages ──
             Expanded(
               child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _messages.isEmpty
-                      ? _buildEmptyChat(theme)
-                      : _buildMessageList(theme, isDark),
+                  ? const ChatShimmerLoader()
+                  : _loadError != null
+                      ? ErrorStateWidget.loadFailed(
+                          what: 'messages',
+                          onRetry: _loadMessages,
+                        )
+                      : _messages.isEmpty
+                          ? _buildEmptyChat(theme)
+                          : _buildMessageList(theme, isDark),
             ),
 
             // ── Input Bar ──

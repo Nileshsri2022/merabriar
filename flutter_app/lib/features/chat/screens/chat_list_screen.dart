@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/connectivity_banner.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../services/message_service.dart';
 import '../../../services/user_service.dart';
 import '../../auth/screens/login_screen.dart';
@@ -19,7 +21,7 @@ class ChatListScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatListScreenState extends ConsumerState<ChatListScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, ConnectivityMixin {
   List<Conversation> _conversations = [];
   List<UserProfile> _allUsers = [];
   bool _loading = true;
@@ -53,6 +55,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   void dispose() {
     _fabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void onConnectivityChanged(ConnectivityStatus status) {
+    if (status == ConnectivityStatus.online && _error != null) {
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
@@ -167,7 +176,20 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
           ),
         ],
       ),
-      body: _loading ? _buildShimmerList() : _buildBody(theme, isDark),
+      body: Column(
+        children: [
+          ConnectivityBanner(
+            isOffline: isOffline,
+            onRetry: () {
+              recheckConnectivity();
+              _loadData();
+            },
+          ),
+          Expanded(
+            child: _loading ? _buildShimmerList() : _buildBody(theme, isDark),
+          ),
+        ],
+      ),
       floatingActionButton: ScaleTransition(
         scale: _fabScale,
         child: FloatingActionButton(
@@ -193,36 +215,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
   // ── Main Body ──
   Widget _buildBody(ThemeData theme, bool isDark) {
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.cloud_off, size: 56, color: AppTheme.danger),
-              const SizedBox(height: 16),
-              const Text(
-                'Connection Error',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _loadData,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      );
+      return ErrorStateWidget.connection(onRetry: _loadData);
     }
 
     if (_conversations.isEmpty) {
