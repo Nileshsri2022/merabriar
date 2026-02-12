@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/animations.dart';
 import '../../../core/widgets/chat_shimmer.dart';
 import '../../../core/widgets/connectivity_banner.dart';
 import '../../../core/widgets/error_state.dart';
@@ -28,6 +29,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     with TickerProviderStateMixin, ConnectivityMixin {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  final _animatedMessageIds = <String>{};
 
   late StreamSubscription<Message> _messageSubscription;
 
@@ -84,6 +86,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       await ref
           .read(messagesProvider(widget.recipientId).notifier)
           .sendMessage(text);
+
+      // Mark the newly sent message for animation
+      final updatedState = ref.read(messagesProvider(widget.recipientId));
+      if (updatedState.messages.isNotEmpty) {
+        _animatedMessageIds.add(updatedState.messages.last.id);
+      }
+
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
@@ -320,7 +329,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         return Column(
           children: [
             if (showDate) _buildDateChip(msg.sentAt),
-            _MessageBubble(message: msg, isDark: isDark),
+            MessageSendAnimation(
+              animate: _animatedMessageIds.remove(msg.id),
+              child: _MessageBubble(message: msg, isDark: isDark),
+            ),
           ],
         );
       },

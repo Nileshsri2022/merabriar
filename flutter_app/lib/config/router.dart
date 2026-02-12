@@ -19,6 +19,77 @@ abstract class AppRoutes {
   static const settings = '/settings';
 }
 
+// ══════════════════════════════════════════════════════════════
+// Custom Page Transitions
+// ══════════════════════════════════════════════════════════════
+
+const _transitionDuration = Duration(milliseconds: 300);
+
+/// Fade transition — for root-level navigation (login ↔ chats)
+CustomTransitionPage<void> _fadeTransition({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: _transitionDuration,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(opacity: animation, child: child);
+    },
+  );
+}
+
+/// Slide-up transition — for push-style navigation (chat screen)
+CustomTransitionPage<void> _slideUpTransition({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: _transitionDuration,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved =
+          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.08),
+          end: Offset.zero,
+        ).animate(curved),
+        child: FadeTransition(opacity: curved, child: child),
+      );
+    },
+  );
+}
+
+/// Slide-right transition — for detail screens (contact profile, settings)
+CustomTransitionPage<void> _slideRightTransition({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: _transitionDuration,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved =
+          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0.25, 0),
+          end: Offset.zero,
+        ).animate(curved),
+        child: FadeTransition(opacity: curved, child: child),
+      );
+    },
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// Router Configuration
+// ══════════════════════════════════════════════════════════════
+
 /// Centralized GoRouter configuration with auth guard.
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
@@ -34,24 +105,33 @@ final GoRouter appRouter = GoRouter(
     // ── Auth ──
     GoRoute(
       path: AppRoutes.login,
-      builder: (context, state) => const LoginScreen(),
+      pageBuilder: (context, state) => _fadeTransition(
+        state: state,
+        child: const LoginScreen(),
+      ),
     ),
 
     // ── Chat List (Home) ──
     GoRoute(
       path: AppRoutes.chats,
-      builder: (context, state) => const ChatListScreen(),
+      pageBuilder: (context, state) => _fadeTransition(
+        state: state,
+        child: const ChatListScreen(),
+      ),
       routes: [
         // ── Individual Chat ──
         GoRoute(
           path: ':recipientId',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final recipientId = state.pathParameters['recipientId']!;
             final recipientName =
                 state.uri.queryParameters['name'] ?? 'Unknown';
-            return ChatScreen(
-              recipientId: recipientId,
-              recipientName: recipientName,
+            return _slideUpTransition(
+              state: state,
+              child: ChatScreen(
+                recipientId: recipientId,
+                recipientName: recipientName,
+              ),
             );
           },
         ),
@@ -61,12 +141,15 @@ final GoRouter appRouter = GoRouter(
     // ── Contact Profile ──
     GoRoute(
       path: '/contact/:userId',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final userId = state.pathParameters['userId']!;
         final displayName = state.uri.queryParameters['name'] ?? 'Unknown';
-        return ContactProfileScreen(
-          userId: userId,
-          displayName: displayName,
+        return _slideRightTransition(
+          state: state,
+          child: ContactProfileScreen(
+            userId: userId,
+            displayName: displayName,
+          ),
         );
       },
     ),
@@ -74,7 +157,10 @@ final GoRouter appRouter = GoRouter(
     // ── Settings ──
     GoRoute(
       path: AppRoutes.settings,
-      builder: (context, state) => const SettingsScreen(),
+      pageBuilder: (context, state) => _slideRightTransition(
+        state: state,
+        child: const SettingsScreen(),
+      ),
     ),
   ],
 );

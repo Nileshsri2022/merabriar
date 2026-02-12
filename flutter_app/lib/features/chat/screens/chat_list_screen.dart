@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/animations.dart';
 import '../../../core/widgets/connectivity_banner.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../services/message_service.dart';
@@ -203,17 +204,20 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen>
             const Divider(indent: 82, endIndent: 16, height: 0),
         itemBuilder: (context, index) {
           final conv = convState.conversations[index];
-          return _ConversationTile(
-            conversation: conv,
-            onTap: () {
-              context
-                  .push(
-                    '/chats/${conv.oderId}?name=${Uri.encodeComponent(conv.odername)}',
-                  )
-                  .then((_) =>
-                      ref.read(conversationsProvider.notifier).refresh());
-            },
-            onLongPress: () => _showContactProfile(conv),
+          return StaggerSlideIn(
+            index: index,
+            child: _ConversationTile(
+              conversation: conv,
+              onTap: () {
+                context
+                    .push(
+                      '/chats/${conv.oderId}?name=${Uri.encodeComponent(conv.odername)}',
+                    )
+                    .then((_) =>
+                        ref.read(conversationsProvider.notifier).refresh());
+              },
+              onLongPress: () => _showContactProfile(conv),
+            ),
           );
         },
       ),
